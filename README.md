@@ -1,2 +1,2 @@
-# ist-ia-15
-Projeto de Inteligência Artificial
+# IA Tetris
+Projeto de Inteligência Artificial 2015/2016
