@@ -44,7 +44,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;
-;;;; TIPO ESTADO ;;;;
+;;;; TIPO MUDEI ;;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
 (defun copia-estado (estado))
