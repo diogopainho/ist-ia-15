@@ -81,4 +81,6 @@
 
 (defun procura-A* (problema heuristica))
 
-(defun procura-best (array lista-pecas)) 
+(defun procura-best (array lista-pecas))
+
+(defun test())
