@@ -79,6 +79,8 @@
 
 (defun procura-pp (problema))
 
+(defun mikeSucks())
+
 (defun procura-A* (problema heuristica))
 
 (defun procura-best (array lista-pecas))
