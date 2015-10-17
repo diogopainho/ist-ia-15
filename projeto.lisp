@@ -72,16 +72,11 @@
 
 (defun custo-oportunidade (estado))
 
-(defun test())
-
-
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;
 
 (defun procura-pp (problema))
-
-(defun benficaForLife())
 
 (defun procura-A* (problema heuristica))
 
