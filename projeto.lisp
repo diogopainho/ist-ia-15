@@ -72,6 +72,8 @@
 
 (defun custo-oportunidade (estado))
 
+(defun test())
+
 
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
@@ -82,4 +84,3 @@
 (defun procura-A* (problema heuristica))
 
 (defun procura-best (array lista-pecas))
-
