@@ -83,4 +83,3 @@
 
 (defun procura-best (array lista-pecas))
 
-(defun test())
