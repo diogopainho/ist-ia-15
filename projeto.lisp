@@ -81,7 +81,7 @@
 
 (defun procura-pp (problema))
 
-(defun mikeSucks())
+(defun myBranchWins())
 
 (defun procura-A* (problema heuristica))
 
