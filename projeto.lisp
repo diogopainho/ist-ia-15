@@ -44,7 +44,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;
-;;;; TIPO ESTADO ;;;;
+;;;; TIPO Nao! ;;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
 (defun copia-estado (estado))
