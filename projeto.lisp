@@ -7,14 +7,13 @@
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
-(defstruct (accao (:constructor cria-accao (inteiro array)))
-  inteiro
-  array)
+(defstruct accao inteiro array)
 
-(defun accao-coluna (array)
-  accao-inteiro array)
+(defun accao-coluna (accao)(
+  accao-inteiro array))
 
-(defun accao-peca (accao))
+(defun accao-peca (accao)
+  accao-array accao))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO TABULEIRO ;;;;
