@@ -9,8 +9,8 @@
 ;;;;;;;;;;;;;;;;;;;;
 (defstruct accao inteiro array)
 
-(defun cria-accao (inteiro array)(
-  (make-accao :inteiro inteiro :array array)))
+(defun cria-accao (inteiro array)
+  (make-accao :inteiro inteiro :array array))
 
 (defun accao-coluna (accao)(
   accao-inteiro array))
