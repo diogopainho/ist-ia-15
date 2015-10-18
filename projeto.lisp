@@ -12,7 +12,7 @@
 (defun accao-coluna (accao)(
   accao-inteiro array))
 
-(defun accao-peca (accao)
+(defun accao-peca (accao)(
   accao-array accao))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
