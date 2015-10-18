@@ -26,6 +26,17 @@
                     (setf result NIL))))
         result))
 
+(defun equal-lists (lst1 lst2)
+    (cond((and (null lst1) (null lst2))
+        t)
+    ((or (null lst1) (null lst2))
+        NIL)
+    (t 
+        (if (eq (car lst1) (car lst2))
+            (equal-lists (cdr lst1) (cdr lst2))
+            NIL))))
+
+			
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -114,11 +125,31 @@
 ;;;; TIPO ESTADO ;;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
-(defun copia-estado (estado))
+(defstruct estado
+    pontos
+    pecas-por-colocar
+    pecas-colocadas ;lista ordenada da peca mas recente para a mais antiga
+    tabuleiro)
+    
+(defun copia-estado (estado1)
+    (let ((estado2 (copy-estado estado1)))
+        (setf (estado-tabuleiro estado2) (copia-tabuleiro (estado-tabuleiro estado1)))
+        (setf (estado-pecas-por-colocar estado2) (copy-list (estado-pecas-por-colocar estado1)))
+        (setf (estado-pecas-por-colocar estado2) (copy-list (estado-pecas-por-colocar estado1)))
+        estado2))
 
-(defun estados-iguais-p (estado1 estado2))
-
-(defun estado-final-p (estado))
+(defun estados-iguais-p (e1 e2)
+    (cond((and (= (estado-pontos e1) (estado-pontos e2))
+               (tabuleiros-iguais-p (estado-tabuleiro e1) (estado-tabuleiro e2))
+               (equal-lists (estado-pecas-por-colocar e1) (estado-pecas-por-colocar e2))
+               (equal-lists (estado-pecas-colocadas e1) (estado-pecas-colocadas e2)))
+        t)
+    (t
+        NIL)))
+            
+(defun estado-final-p (estado)
+    (if(or(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
+          (null (estado-pecas-por-colocar estado))) t NIL))
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
