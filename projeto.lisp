@@ -2,12 +2,15 @@
 ;;;; Grupo 38 - Alameda - 72471 Michael Santos - 73245 Diogo Painho - 75219 Joao Franco ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(load utils.lisp)
+;(load utils.lisp)
 
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
 (defstruct accao inteiro array)
+
+(defun cria-accao inteiro array)(
+  (make-accao :inteiro inteiro :array array))
 
 (defun accao-coluna (accao)(
   accao-inteiro array))
