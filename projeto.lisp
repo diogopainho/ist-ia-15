@@ -3,6 +3,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;(load utils.lisp)
+
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TOOLS ;;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -33,10 +34,14 @@
   inteiro
   array)
 
-(defun accao-coluna (array)
-  accao-inteiro array)
+(defun cria-accao (inteiro array)
+  (make-accao :inteiro inteiro :array array))
 
-(defun accao-peca (accao))
+(defun accao-coluna (accao)(
+  accao-inteiro accao))
+
+(defun accao-peca (accao)(
+  accao-array accao))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO TABULEIRO ;;;;
