@@ -13,7 +13,7 @@
   (make-accao :inteiro inteiro :array array))
 
 (defun accao-coluna (accao)(
-  accao-inteiro array))
+  accao-inteiro accao))
 
 (defun accao-peca (accao)(
   accao-array accao))
