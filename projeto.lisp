@@ -31,17 +31,17 @@
         t)
     ((or (null lst1) (null lst2))
         NIL)
-    (t 
+    (t
         (if (eq (car lst1) (car lst2))
             (equal-lists (cdr lst1) (cdr lst2))
             NIL))))
 
-			
+
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
 
-(defstruct (accao (:constructor cria-accao (inteiro array)))
+(defstruct accao
   inteiro
   array)
 
@@ -130,7 +130,7 @@
     pecas-por-colocar
     pecas-colocadas ;lista ordenada da peca mas recente para a mais antiga
     tabuleiro)
-    
+
 (defun copia-estado (estado1)
     (let ((estado2 (copy-estado estado1)))
         (setf (estado-tabuleiro estado2) (copia-tabuleiro (estado-tabuleiro estado1)))
@@ -146,7 +146,7 @@
         t)
     (t
         NIL)))
-            
+
 (defun estado-final-p (estado)
     (if(or(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
           (null (estado-pecas-por-colocar estado))) t NIL))
