@@ -84,11 +84,11 @@
         ))
 
 (defun tabuleiro-linha-completa-p (tab lin)
-    (setq i (- (tabuleiro-colunas tab) 1))
-    (loop
-        (when (= i -1) (return t))
-        (when (not (tabuleiro-preenchido-p tab lin i)) (return NIL))
-        (setq i (- i 1))))
+    (let ((i (- (tabuleiro-colunas tab) 1)))
+		(loop
+			(when (= i -1) (return t))
+			(when (not (tabuleiro-preenchido-p tab lin i)) (return NIL))
+			(setf i (- i 1)))))
 
 (defun tabuleiro-preenche! (tab lin col)
     (cond ((or (>= lin (tabuleiro-linhas tab)) (>= col (tabuleiro-colunas tab))) '("error: tabuleiro-preenche"))
@@ -104,11 +104,11 @@
         (setf (aref (tabuleiro-array tab) (- (tabuleiro-linhas tab) 1) i) NIL)))
 
 (defun tabuleiro-topo-preenchido-p (tab)
-    (setq i (- (tabuleiro-colunas tab) 1))
-    (loop
-        (when (= i -1) (return NIL))
-        (when (tabuleiro-preenchido-p tab (- (tabuleiro-linhas tab) 1) i) (return t))
-        (setq i (- i 1))))
+    (let ((i (- (tabuleiro-colunas tab) 1)))
+		(loop
+			(when (= i -1) (return NIL))
+			(when (tabuleiro-preenchido-p tab (- (tabuleiro-linhas tab) 1) i) (return t))
+			(setq i (- i 1)))))
 
 (defun tabuleiros-iguais-p (tab1 tab2)
     (iguais-array-2D (tabuleiro-array tab1) (tabuleiro-array tab2)))
