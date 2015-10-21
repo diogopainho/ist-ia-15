@@ -42,17 +42,11 @@
 ;;;;;;;;;;;;;;;;;;;;
 
 (defstruct accao
-  inteiro
-  array)
+  coluna
+  peca)
 
 (defun cria-accao (inteiro array)
-  (make-accao :inteiro inteiro :array array))
-
-(defun accao-coluna (accao)(
-  accao-inteiro accao))
-
-(defun accao-peca (accao)(
-  accao-array accao))
+  (make-accao :coluna inteiro :peca array))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO TABULEIRO ;;;;
@@ -65,7 +59,7 @@
 
 ;NIL for empty and full otherwise
 (defun cria-tabuleiro ()
-    (let((lin 3) (col 4))
+    (let((lin 10) (col 18))
         (make-tabuleiro :linhas lin :colunas col :array (make-array (list lin col) :initial-element NIL))))
 
 (defun copia-tabuleiro (tab1)
@@ -154,28 +148,106 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
-(defstruct problema estado-inicial solucao accoes resultado custo-caminho)
+(defstruct problema 
+    estado-inicial 
+    solucao 
+    accoes 
+    resultado 
+    custo-caminho)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; FUNCOES DO PROBLEMA DE PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun solucao (estado))
+; @See: Untested!
+(defun solucao (estado)
+    if (and (null (estado-pecas-por-colocar estado)) (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
+        t
+        NIL)
 
-(defun accoes (estado))
+; @See: How to make this a lambda
+(defun accoes-aux (lst-accoes array-peca base-value)
+    (dotimes (i (- base-value (array-dimension array-peca 1)))
+        (setf lst-accoes (append lst-accoes (list (cria-accao i array-peca)))))
+        ;(setf lst-accoes (cons (cria-accao i array-peca) lst-accoes))) @See: this would give us the list in reverse order. Would it be so much faster that reversing the list afterwards would conpensate? Dont think so
+    lst-accoes)
 
-(defun resultado (estado accao))
+; @See: Should we use with the cond or make it more generic? this way is faster no?
+(defun accoes (estado)
+    (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
+          (peca (first (estado-pecas-por-colocar estado))) 
+          (lst-accoes (list)))
+                        
+        (cond ((eq peca 't) (setf lst-accoes (accoes-aux lst-accoes peca-t0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t1 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t2 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t3 dotimes-value-base)))
+              ((eq peca 'l) (setf lst-accoes (accoes-aux lst-accoes peca-l0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l1 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l2 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l3 dotimes-value-base)))
+              ((eq peca 'j) (setf lst-accoes (accoes-aux lst-accoes peca-j0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j1 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j2 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j3 dotimes-value-base)))
+              ((eq peca 'i) (setf lst-accoes (accoes-aux lst-accoes peca-i0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-i1 dotimes-value-base)))
+              ((eq peca 's) (setf lst-accoes (accoes-aux lst-accoes peca-s0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-s1 dotimes-value-base)))
+              ((eq peca 'z) (setf lst-accoes (accoes-aux lst-accoes peca-z0 dotimes-value-base))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-z1 dotimes-value-base)))
+              ((eq peca 'o) (setf lst-accoes (accoes-aux lst-accoes peca-o0 dotimes-value-base))))))
+        
+        
+        ;#'(lambda(array-peca)
+        ;    (dotimes (i (- (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1) (array-dimension peca-t1 1)))
+        ;        (setf lst-accoes (concatenate 'list lst-accoes (list (cria-accao i peca))))))))
+        
 
-(defun qualidade (estado))
+(defun resultado (estado accao)
+    (let ((e (copia-estado estado)))
+        (setf (estado-pecas-colocadas e) (cons (first (estado-pecas-por-colocar e)) (estado-pecas-colocadas e))) ;atualiza pecas colocadas
+        (setf (estado-pecas-por-colocar e) (rest (estado-pecas-por-colocar e))) ;atualiza pecas por colocar
+        (let ((altura-temp 0) (primeira-linha 0))
+            
+            ;Calculate primeira-linha ;@FIXME: pecas nao encaixam
+            (dotimes (col (array-dimension (accao-peca accao) 1))
+                (setf altura-temp (tabuleiro-altura-coluna (estado-tabuleiro e) (+ col (accao-coluna accao))))
+                (cond ((> altura-temp primeira-linha)
+                    (setf primeira-linha altura-temp))))
+            
+            (print primeira-linha)
+            ;Preenche tabuleiro
+            (dotimes (lin (array-dimension (accao-peca accao) 0))
+                (dotimes (col (array-dimension (accao-peca accao) 1))
+                    (cond ((eq T (aref (accao-peca accao) lin col))
+                        (tabuleiro-preenche! (estado-tabuleiro e) (+ lin primeira-linha) (+ col (accao-coluna accao))))))))
+            
+            ;@TODO: Testes
+        e))
 
-(defun custo-oportunidade (estado))
+;(defun qualidade (estado))
+
+;(defun custo-oportunidade (estado))
 
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;
 
-(defun procura-pp (problema))
+;(defun procura-pp (problema))
 
-(defun procura-A* (problema heuristica))
+;(defun procura-A* (problema heuristica))
 
-(defun procura-best (array lista-pecas))
+;(defun procura-best (array lista-pecas))
+
+(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'o 'o 'z) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
+(print e1)
+(setf accoes (accoes e1))
+(setf e2 (resultado e1 (first (cdr (cdr accoes)))))
+(setf e3 (resultado e2 (first (cdr (cdr accoes)))))
+(print e2)
+(print e3)
+;(print accoes)
+
+
+;(concatenate 'list '(1 2 3) '(4 5))
