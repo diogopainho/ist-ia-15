@@ -267,7 +267,17 @@
 (defun qualidade (estado)
     (* (estado-pontos estado) -1))
 
-;(defun custo-oportunidade (estado))
+(defun custo-oportunidade (estado)
+    (let ((maxPontos 0))
+        (dolist (n (estado-pecas-colocadas estado))
+            (cond ((eq n 'i) (setf maxPontos (+ maxPontos 800)))
+                ((eq n 'j) (setf maxPontos (+ maxPontos 500)))
+                ((eq n 'l) (setf maxPontos (+ maxPontos 500)))
+                ((eq n 's) (setf maxPontos (+ maxPontos 300)))
+                ((eq n 'z) (setf maxPontos (+ maxPontos 300)))
+                ((eq n 't) (setf maxPontos (+ maxPontos 300)))
+                ((eq n 'o) (setf maxPontos (+ maxPontos 300)))))
+        (- maxPontos (estado-pontos estado))))
 
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
