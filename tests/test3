@@ -1,0 +1,26 @@
+;;; Teste 3
+;;; Testes tipo tabuleiro 2
+;;deve retornar IGNORE
+(ignore-value (setf tab1 (cria-tabuleiro)))
+;;deve retornar IGNORE
+(ignore-value (setf tab2 (cria-tabuleiro)))
+;;deve retornar T
+(tabuleiros-iguais-p tab1 tab2)
+;;deve retornar IGNORE
+(ignore-value (setf tab3 (copia-tabuleiro tab1)))
+;;deve retornar T
+(tabuleiros-iguais-p tab1 tab3)
+;;deve retornar NIL
+(eq tab1 tab3)
+;;deve retornar IGNORE
+(ignore-value (dotimes (coluna 10) (tabuleiro-preenche! tab1 2 coluna)))
+;;deve retornar IGNORE
+(ignore-value (setf tab3 (copia-tabuleiro tab1)))
+;;deve retornar T
+(tabuleiros-iguais-p tab1 tab3)
+;;deve retornar NIL
+(tabuleiros-iguais-p tab1 tab2)
+;;deve retornar T
+(tabuleiro-linha-completa-p tab1 2)
+;;deve retornar NIL
+(tabuleiro-linha-completa-p tab1 3)

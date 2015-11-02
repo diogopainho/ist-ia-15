@@ -1,0 +1,8 @@
+;; Teste 1
+;;; Testes Tipo Accao
+;;deve retornar T
+(equalp (cria-accao 3 '#2A((T T nil)(nil T T))) '(3 . #2A((T T nil)(nil T T))))
+;;deve retornar T
+(equal (accao-coluna (cria-accao 3 '#2A((T T nil)(nil T T)))) 3)
+;;deve retornar T
+(equalp (accao-peca (cria-accao 3 '#2A((T T nil)(nil T T)))) '#2A((T T nil)(nil T T)))

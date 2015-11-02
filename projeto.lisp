@@ -2,11 +2,15 @@
 ;;;; Grupo 38 - Alameda - 72471 Michael Santos - 73245 Diogo Painho - 75219 Joao Franco ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;(load utils.lisp)
+;(load "utils.fas")
 
-;;;;;;;;;;;;;;;;;;;;
+(defun ignore-value (x)
+	(declare (ignore x))
+	'ignore)
+
+;;;;;;;;;;;;;;;
 ;;;; TOOLS ;;;;
-;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;
 
 (defun copia-array-2D (array1)
     (let((array2 (make-array (array-dimensions array1))))
@@ -41,12 +45,18 @@
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
 
-(defstruct accao
-  coluna
-  peca)
+;(defstruct (accao (:constructor cria-accao (coluna peca)))
+;  coluna
+;  peca)
 
-(defun cria-accao (inteiro array)
-  (make-accao :coluna inteiro :peca array))
+(defun cria-accao (coluna peca)
+  (cons coluna peca))
+
+(defun accao-coluna (a)
+  (car a))
+
+(defun accao-peca (a)
+  (cdr a))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO TABULEIRO ;;;;
@@ -148,11 +158,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
-(defstruct problema 
-    estado-inicial 
-    solucao 
-    accoes 
-    resultado 
+(defstruct problema
+    estado-inicial
+    solucao
+    accoes
+    resultado
     custo-caminho)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -161,9 +171,9 @@
 
 ; @See: Untested!
 (defun solucao (estado)
-    if (and (null (estado-pecas-por-colocar estado)) (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
+    (if (and (null (estado-pecas-por-colocar estado)) (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
         t
-        NIL)
+        NIL))
 
 ; @See: How to make this a lambda
 (defun accoes-aux (lst-accoes array-peca base-value)
@@ -175,9 +185,9 @@
 ; @See: Should we use with the cond or make it more generic? this way is faster no?
 (defun accoes (estado)
     (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
-          (peca (first (estado-pecas-por-colocar estado))) 
+          (peca (first (estado-pecas-por-colocar estado)))
           (lst-accoes (list)))
-                        
+
         (cond ((eq peca 't) (setf lst-accoes (accoes-aux lst-accoes peca-t0 dotimes-value-base))
                             (setf lst-accoes (accoes-aux lst-accoes peca-t1 dotimes-value-base))
                             (setf lst-accoes (accoes-aux lst-accoes peca-t2 dotimes-value-base))
@@ -197,8 +207,8 @@
               ((eq peca 'z) (setf lst-accoes (accoes-aux lst-accoes peca-z0 dotimes-value-base))
                             (setf lst-accoes (accoes-aux lst-accoes peca-z1 dotimes-value-base)))
               ((eq peca 'o) (setf lst-accoes (accoes-aux lst-accoes peca-o0 dotimes-value-base))))))
-        
-        
+
+
         ;#'(lambda(array-peca)
         ;    (dotimes (i (- (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1) (array-dimension peca-t1 1)))
         ;        (setf lst-accoes (concatenate 'list lst-accoes (list (cria-accao i peca))))))))
@@ -207,40 +217,40 @@
     (do ((i 0 (incf i)))
         ((or (= i (array-dimension peca 1)) (eq (aref peca i col) T)) i)
     ))
-    
+
 (defun resultado (estado accao)
     (let ((e (copia-estado estado)))
         (setf (estado-pecas-colocadas e) (cons (first (estado-pecas-por-colocar e)) (estado-pecas-colocadas e))) ;atualiza pecas colocadas
         (setf (estado-pecas-por-colocar e) (rest (estado-pecas-por-colocar e))) ;atualiza pecas por colocar
         (let ((altura-temp 0) (primeira-linha 0))
-            
+
             ;Calculate primeira-linha
             (dotimes (col (array-dimension (accao-peca accao) 1))
-                (setf altura-temp (- (tabuleiro-altura-coluna (estado-tabuleiro e) (+ col (accao-coluna accao))) (altura-inversa-peca (accao-peca accao) col))) 
+                (setf altura-temp (- (tabuleiro-altura-coluna (estado-tabuleiro e) (+ col (accao-coluna accao))) (altura-inversa-peca (accao-peca accao) col)))
                 (cond ((> altura-temp primeira-linha)
                     (setf primeira-linha altura-temp))))
-            
+
             ;(print primeira-linha)
-            
+
             ;Preenche tabuleiro
             (dotimes (lin (array-dimension (accao-peca accao) 0))
                 (dotimes (col (array-dimension (accao-peca accao) 1))
                     (cond ((eq T (aref (accao-peca accao) lin col))
                         (tabuleiro-preenche! (estado-tabuleiro e) (+ lin primeira-linha) (+ col (accao-coluna accao)))))))
-            
+
             ;Testes
             ;verificar se o topo esta preenchido
             ;se sim nao se removem linhas e devolve-se o estado
             ;se nao removem-se as linhas e calculam-se os pontos
-            (cond ((tabuleiro-topo-preenchido-p (estado-tabuleiro e)) 
+            (cond ((tabuleiro-topo-preenchido-p (estado-tabuleiro e))
                 e)
             (t
-                (let ((linhas-apagadas 0) 
+                (let ((linhas-apagadas 0)
                       (limite (+ (array-dimension (accao-peca accao) 0) primeira-linha)))
-                    
+
                     (do ((lin limite (decf lin)))
                         ((= lin -1) t)
-                        (cond ((tabuleiro-linha-completa-p (estado-tabuleiro e) lin) 
+                        (cond ((tabuleiro-linha-completa-p (estado-tabuleiro e) lin)
                             (tabuleiro-remove-linha! (estado-tabuleiro e) lin)
                             (setf linhas-apagadas (incf linhas-apagadas)))))
                     (cond ((= linhas-apagadas 0)
@@ -250,8 +260,8 @@
                     ((= linhas-apagadas 3) (write-line "3")(setf (estado-pontos e) (+ (estado-pontos e) 500)))
                     ((= linhas-apagadas 4) (write-line "4")(setf (estado-pontos e) (+ (estado-pontos e) 800)))
                     (t (write-line "*******************PreMIO HACkeR(impossivel remover mais que 5 linhas)****************"))) ))))
-                    
-                    
+
+
         e))
 
 (defun qualidade (estado)
@@ -270,25 +280,25 @@
 ;(defun procura-best (array lista-pecas))
 
 ;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'j 'o 'z 'i 'o 's 't 'l) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
-(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i ) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
-(setf i 0)
-(loop
-	(when (estado-final-p e1) (return t))
-	(setf accoes (accoes e1))
-    (cond ((= (mod i 10) 0) (setf e1 (resultado e1 (first accoes))))
-          ((= (mod i 10) 1) (setf e1 (resultado e1 (first (cdr accoes)))))
-          ((= (mod i 10) 2) (setf e1 (resultado e1 (first (cdr (cdr accoes))))))
-          ((= (mod i 10) 3) (setf e1 (resultado e1 (first (cdr (cdr (cdr accoes)))))))
-          ((= (mod i 10) 4) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr accoes))))))))
-          ((= (mod i 10) 5) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr accoes)))))))))
-          ((= (mod i 10) 6) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))
-          ((= (mod i 10) 7) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes)))))))))))
-          ((= (mod i 10) 8) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))
-          ((= (mod i 10) 9) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))))
-    (desenha-estado e1)
-	(setf i (incf i)))
+;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i ) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
+;(setf i 0)
+;(loop
+;	(when (estado-final-p e1) (return t))
+;	(setf accoes (accoes e1))
+;    (cond ((= (mod i 10) 0) (setf e1 (resultado e1 (first accoes))))
+;          ((= (mod i 10) 1) (setf e1 (resultado e1 (first (cdr accoes)))))
+;          ((= (mod i 10) 2) (setf e1 (resultado e1 (first (cdr (cdr accoes))))))
+;          ((= (mod i 10) 3) (setf e1 (resultado e1 (first (cdr (cdr (cdr accoes)))))))
+;          ((= (mod i 10) 4) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr accoes))))))))
+;          ((= (mod i 10) 5) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr accoes)))))))))
+;          ((= (mod i 10) 6) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))
+;          ((= (mod i 10) 7) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes)))))))))))
+;          ((= (mod i 10) 8) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))
+;          ((= (mod i 10) 9) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))))
+;    (desenha-estado e1)
+;	(setf i (incf i)))
 
-(print (qualidade e1))
+;(print (qualidade e1))
 
 ;(desenha-estado e1)
 ;(setf accoes (accoes e1))
