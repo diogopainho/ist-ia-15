@@ -139,7 +139,7 @@
     (let ((estado2 (copy-estado estado1)))
         (setf (estado-tabuleiro estado2) (copia-tabuleiro (estado-tabuleiro estado1)))
         (setf (estado-pecas-por-colocar estado2) (copy-list (estado-pecas-por-colocar estado1)))
-        (setf (estado-pecas-por-colocar estado2) (copy-list (estado-pecas-por-colocar estado1)))
+        (setf (estado-pecas-colocadas estado2) (copy-list (estado-pecas-colocadas estado1)))
         estado2))
 
 (defun estados-iguais-p (e1 e2)
