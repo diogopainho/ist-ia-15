@@ -255,10 +255,10 @@
                             (setf linhas-apagadas (incf linhas-apagadas)))))
                     (cond ((= linhas-apagadas 0)
                         t)
-                    ((= linhas-apagadas 1) (write-line "1")(setf (estado-pontos e) (+ (estado-pontos e) 100)))
-                    ((= linhas-apagadas 2) (write-line "2")(setf (estado-pontos e) (+ (estado-pontos e) 300)))
-                    ((= linhas-apagadas 3) (write-line "3")(setf (estado-pontos e) (+ (estado-pontos e) 500)))
-                    ((= linhas-apagadas 4) (write-line "4")(setf (estado-pontos e) (+ (estado-pontos e) 800)))
+                    ((= linhas-apagadas 1) (setf (estado-pontos e) (+ (estado-pontos e) 100)))
+                    ((= linhas-apagadas 2) (setf (estado-pontos e) (+ (estado-pontos e) 300)))
+                    ((= linhas-apagadas 3) (setf (estado-pontos e) (+ (estado-pontos e) 500)))
+                    ((= linhas-apagadas 4) (setf (estado-pontos e) (+ (estado-pontos e) 800)))
                     (t (write-line "*******************PreMIO HACkeR(impossivel remover mais que 5 linhas)****************"))) ))))
 
 
