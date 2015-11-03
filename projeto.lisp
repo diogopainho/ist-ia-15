@@ -2,12 +2,6 @@
 ;;;; Grupo 38 - Alameda - 72471 Michael Santos - 73245 Diogo Painho - 75219 Joao Franco ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;(load "utils.fas")
-
-(defun ignore-value (x)
-	(declare (ignore x))
-	'ignore)
-
 ;;;;;;;;;;;;;;;
 ;;;; TOOLS ;;;;
 ;;;;;;;;;;;;;;;
@@ -288,6 +282,8 @@
 ;(defun procura-A* (problema heuristica))
 
 ;(defun procura-best (array lista-pecas))
+
+(load "utils.fas")
 
 ;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'j 'o 'z 'i 'o 's 't 'l) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
 ;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i ) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
