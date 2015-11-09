@@ -6,6 +6,7 @@
 ;;;; TOOLS ;;;;
 ;;;;;;;;;;;;;;;
 
+;Funcao auxiliar que dado um array devolve outro array igual, com referencias independentes
 (defun copia-array-2D (array1)
     (let((array2 (make-array (array-dimensions array1))))
         (dotimes(i (array-dimension array1 0))
@@ -16,6 +17,7 @@
 ; @FIXME:
 ; quando descobre uma diferenca, coloca result a NIL e avalia o resto. Pouco
 ; eficiente porque tem que ir ate ao fim.
+;Funcao auxiliar que dados dois arrays, verifica se estes sao iguais
 (defun iguais-array-2D(array1 array2)
     (let ((result t))
         (dotimes(i (array-dimension array1 0))
@@ -23,7 +25,7 @@
                 (if (not (eq (aref array1 i j) (aref array2 i j)))
                     (setf result NIL))))
         result))
-
+;Funcao auxiliar que dadas duas listas, verifica se estas sao iguais
 (defun equal-lists (lst1 lst2)
     (cond((and (null lst1) (null lst2))
         t)
@@ -38,17 +40,15 @@
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
-
-;(defstruct (accao (:constructor cria-accao (coluna peca)))
-;  coluna
-;  peca)
-
+;Construtor que dado um inteiro e uma peca, devolve um par com os dois elementos designado por accao
 (defun cria-accao (coluna peca)
   (cons coluna peca))
 
+;Selector que dada uma accao devolve a coluna mais a esquerda a partir da qual a peca vai ser colocada
 (defun accao-coluna (a)
   (car a))
 
+;Selector que dada uma accao devolve o array com a configuracao geometrica exacta com que vai ser colocada
 (defun accao-peca (a)
   (cdr a))
 
@@ -56,31 +56,36 @@
 ;;;; TIPO TABULEIRO ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;Estrutura que define o tabuleiro como tendo linhas colunas e um array
 (defstruct tabuleiro
     linhas
     colunas
     array)
 
-;NIL for empty and full otherwise
+;Construtor que devolve um tabuleiro vazio
 (defun cria-tabuleiro ()
     (let((lin 18) (col 10))
         (make-tabuleiro :linhas lin :colunas col :array (make-array (list lin col) :initial-element NIL))))
 
+;Constrtor que recebe um tabuleiro e devolve um novo tabuleiro com o mesmo conteudo do tabuleiro recebido. E garantido que qualquer alteracao nao se propaga para o tabuleiro original
 (defun copia-tabuleiro (tab1)
     (let((tab2 (copy-tabuleiro tab1)))
         (setf (tabuleiro-array tab2) (copia-array-2D (tabuleiro-array tab1)))
         tab2))
 
+;Seletor que recebe um tabuleiro, um inteiro correspondente a linha e coluna e devolve o valor logico caso essa posicao esteja preenchida ou nao
 (defun tabuleiro-preenchido-p (tab lin col)
     (if (eq (aref (tabuleiro-array tab) lin col) NIL)
         NIL
         t))
 
+;Selector que recebe um tabuleiro e uma coluna e devolve a altura da uma coluna, ou seja a posicao mais alta que esta preenchida nessa coluna
 (defun tabuleiro-altura-coluna (tab col)
     (do ((i (- (tabuleiro-linhas tab) 1) (- i 1)))
         ((or (= i -1) (tabuleiro-preenchido-p tab i col)) (+ i 1))
         ))
 
+;Reconhecedor que recebe um tabuleiro e um inteiro correspondente a uma linha e devolve o valor logico com base nas posicoes da linha que estiverem preenchidas
 (defun tabuleiro-linha-completa-p (tab lin)
     (let ((i (- (tabuleiro-colunas tab) 1)))
 		(loop
@@ -88,11 +93,13 @@
 			(when (not (tabuleiro-preenchido-p tab lin i)) (return NIL))
 			(setf i (- i 1)))))
 
+;Modificador que recebe um tabuleiro, uma linha e uma coluna e preenche a posicao dada no tabuleiro
 (defun tabuleiro-preenche! (tab lin col)
     (cond ((or (>= lin (tabuleiro-linhas tab)) (>= col (tabuleiro-colunas tab))) '("error: tabuleiro-preenche"))
     (t
         (setf (aref (tabuleiro-array tab) lin col) t) )))
 
+;Modificador que recebe um tabuleiro e uma linha e altera o tabuleiro removendo a linha correspondente. As linhas que estao por baixo nao sao alteradas
 (defun tabuleiro-remove-linha! (tab lin)
     (do ((i lin (+ i 1)))
         ((= i (- (tabuleiro-linhas tab) 1)) NIL)
@@ -101,6 +108,7 @@
     (dotimes (i (tabuleiro-colunas tab))
         (setf (aref (tabuleiro-array tab) (- (tabuleiro-linhas tab) 1) i) NIL)))
 
+;Reconhecedor que recebe um tabuleiro e devolve o valor logico T se todas as posicoes do topo do tabuleiro estiverem preenchidas e NIL caso contrario
 (defun tabuleiro-topo-preenchido-p (tab)
     (let ((i (- (tabuleiro-colunas tab) 1)))
 		(loop
@@ -108,12 +116,15 @@
 			(when (tabuleiro-preenchido-p tab (- (tabuleiro-linhas tab) 1) i) (return t))
 			(setq i (- i 1)))))
 
+;Teste que receve dois tabuleiros e devolve o valor logico T caso sejam iguais e NIL caso contrario
 (defun tabuleiros-iguais-p (tab1 tab2)
     (iguais-array-2D (tabuleiro-array tab1) (tabuleiro-array tab2)))
 
+;Transformador de saida que recebe um tabuleiro e devolve um novo array com 16 linhas e 10 colunas em que cada linha e coluna deverar contar o valor logico correspondente a cada posicao do tabuleiro
 (defun tabuleiro->array (tab)
     (copia-array-2D (tabuleiro-array tab)))
 
+;Transformador de entrada que recebe um array de 16 linhas e 10 colunas cujas posicoes tem de ter o mesmo valor logico T ou NIL e constroi um novo tabuleiro com o conteudo do array recebido
 (defun array->tabuleiro (array)
     (let ((tab (cria-tabuleiro)))
         (setf (tabuleiro-array tab) (copia-array-2D array))
@@ -123,12 +134,14 @@
 ;;;; TIPO ESTADO ;;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
+;Estrutura que define o estado com tendo pontos, pecas por colocar, pecas colocadas e um tabuleiro
 (defstruct estado
     pontos
     pecas-por-colocar
     pecas-colocadas ;lista ordenada da peca mas recente para a mais antiga
     tabuleiro)
 
+;Construtor que recebe um estado e devolve um estado cujo conteudo deve ser copiado a partir do estado original
 (defun copia-estado (estado1)
     (let ((estado2 (copy-estado estado1)))
         (setf (estado-tabuleiro estado2) (copia-tabuleiro (estado-tabuleiro estado1)))
@@ -136,6 +149,7 @@
         (setf (estado-pecas-colocadas estado2) (copy-list (estado-pecas-colocadas estado1)))
         estado2))
 
+;Teste que recebe dois estados e devolve o valor logico T caso os estados sejam iguais ou NIL caso constrario
 (defun estados-iguais-p (e1 e2)
     (cond((and (= (estado-pontos e1) (estado-pontos e2))
                (tabuleiros-iguais-p (estado-tabuleiro e1) (estado-tabuleiro e2))
@@ -145,6 +159,8 @@
     (t
         NIL)))
 
+;Reconhecedor que dado um estado, devolve o valor logico T se corresponder a um estado final onde o jogador ja nao pode fazer mais jogadas e falso caso contrario
+;Um estado e considerado final se o tabuleiro nao tiver atingido o topo ou se ja nao existirem pecas por colocar
 (defun estado-final-p (estado)
     (if(or(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
           (null (estado-pecas-por-colocar estado))) t NIL))
@@ -152,6 +168,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
+
+;Estrutura que define o problema como tendo estado-inicial, solucao, accoes, resultado e o custo-caminho
 (defstruct problema
     estado-inicial
     solucao
@@ -163,7 +181,8 @@
 ;;;; FUNCOES DO PROBLEMA DE PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; @See: Untested!
+;Funcao que recebe um estado e devolve o valor logico verdade se o estado recebido corresponder a uma solucao e falso caso constrario
+;Um estado do jogo Tetris e considerado colucao se o topo do tabuleiro nao estiver preenchido e se ja nao existirem pecas por colocar
 (defun solucao (estado)
     (if (and (null (estado-pecas-por-colocar estado)) (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
         t
@@ -176,6 +195,7 @@
         ;(setf lst-accoes (cons (cria-accao i array-peca) lst-accoes))) @See: this would give us the list in reverse order. Would it be so much faster that reversing the list afterwards would conpensate? Dont think so
     lst-accoes)
 
+;Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima pec a ser colocada
 ; @See: Should we use with the cond or make it more generic? this way is faster no?
 (defun accoes (estado)
     (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
@@ -207,11 +227,13 @@
         ;    (dotimes (i (- (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1) (array-dimension peca-t1 1)))
         ;        (setf lst-accoes (concatenate 'list lst-accoes (list (cria-accao i peca))))))))
 
+;
 (defun altura-inversa-peca (peca col)
     (do ((i 0 (incf i)))
         ((or (= i (array-dimension peca 1)) (eq (aref peca i col) T)) i)
     ))
 
+;Funcao que recebe um estado e uma accao e devolve um novo estado que resulta de aplicar a accao recebida no estado original
 (defun resultado (estado accao)
     (let ((e (copia-estado estado)))
         (setf (estado-pecas-colocadas e) (cons (first (estado-pecas-por-colocar e)) (estado-pecas-colocadas e))) ;atualiza pecas colocadas
@@ -258,9 +280,11 @@
 
         e))
 
+;Funcao que recebe um estado e retorna um valor de qualidade que corresponde ao valor negativo dos pontos ganhos ate ao momento
 (defun qualidade (estado)
     (* (estado-pontos estado) -1))
 
+;Funcao que dado um estado devolve o custo de oportunidade de todas as accoes realizadas ate ao momento, assumindo que e sempre possivel fazer o maximo de pontos por cada peca colocada
 (defun custo-oportunidade (estado)
     (let ((maxPontos 0))
         (dolist (n (estado-pecas-colocadas estado))
@@ -284,32 +308,3 @@
 ;(defun procura-best (array lista-pecas))
 
 (load "utils.fas")
-
-;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'j 'o 'z 'i 'o 's 't 'l) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
-;(setf e1 (make-estado :pontos 0 :pecas-por-colocar (list 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i 'i ) :pecas-colocadas (list 'i) :tabuleiro (cria-tabuleiro)))
-;(setf i 0)
-;(loop
-;	(when (estado-final-p e1) (return t))
-;	(setf accoes (accoes e1))
-;    (cond ((= (mod i 10) 0) (setf e1 (resultado e1 (first accoes))))
-;          ((= (mod i 10) 1) (setf e1 (resultado e1 (first (cdr accoes)))))
-;          ((= (mod i 10) 2) (setf e1 (resultado e1 (first (cdr (cdr accoes))))))
-;          ((= (mod i 10) 3) (setf e1 (resultado e1 (first (cdr (cdr (cdr accoes)))))))
-;          ((= (mod i 10) 4) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr accoes))))))))
-;          ((= (mod i 10) 5) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr accoes)))))))))
-;          ((= (mod i 10) 6) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))
-;          ((= (mod i 10) 7) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes)))))))))))
-;          ((= (mod i 10) 8) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))
-;          ((= (mod i 10) 9) (setf e1 (resultado e1 (first (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr (cdr accoes))))))))))))))
-;    (desenha-estado e1)
-;	(setf i (incf i)))
-
-;(print (qualidade e1))
-
-;(desenha-estado e1)
-;(setf accoes (accoes e1))
-;(setf e2 (resultado e1 (first (cdr (cdr accoes)))))
-;(setf accoes (accoes e2))
-;(setf e3 (resultado e2 (first (cdr accoes))))
-;(desenha-estado e2)
-;(desenha-estado e3)
