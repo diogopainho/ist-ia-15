@@ -36,7 +36,6 @@
             (equal-lists (cdr lst1) (cdr lst2))
             NIL))))
 
-
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -136,7 +135,7 @@
 
 ;Estrutura que define o estado com tendo pontos, pecas por colocar, pecas colocadas e um tabuleiro
 (defstruct estado
-    pontos
+    (pontos 0)
     pecas-por-colocar
     pecas-colocadas ;lista ordenada da peca mas recente para a mais antiga
     tabuleiro)
@@ -302,6 +301,22 @@
 ;;;;;;;;;;;;;;;;;
 
 ;(defun procura-pp (problema))
+(defun procura-pp (p)
+    (recursive-pp p))
+
+(defun recursive-pp (p)
+    (cdr (recursive-pp-aux p (problema-estado-inicial p) NIL)))
+
+(defun recursive-pp-aux (p e oldA)
+    (cond ((eq (funcall (problema-solucao p) e) T)
+        (list oldA))
+    (T
+        (let ((result NIL))
+            (dolist (a (funcall (problema-accoes p) e))
+                (setf result (recursive-pp-aux p (funcall (problema-resultado p) e a) a))
+                (when (not (eq result NIL))
+                    (return-from recursive-pp-aux (cons oldA result)))))
+        NIL)))
 
 ;(defun procura-A* (problema heuristica))
 
