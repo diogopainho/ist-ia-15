@@ -214,6 +214,11 @@
     (if(or(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
           (null (estado-pecas-por-colocar estado))) t NIL))
 
+(defun estado-terminal (estado)
+    (if (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)) 
+	t 
+	NIL))
+
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
@@ -248,6 +253,9 @@
 ;Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima pec a ser colocada
 ;@See: Should we use with the cond or make it more generic? this way is faster no?
 (defun accoes (estado) 
+	(when (eq (estado-terminal estado) t)
+		(return-from accoes NIL))
+
     (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
           (peca (first (estado-pecas-por-colocar estado)))
           (lst-accoes NIL))
