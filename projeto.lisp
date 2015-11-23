@@ -399,7 +399,7 @@
 		(dotimes (i (tabuleiro-linhas tab))
 			(cond ((and (eq foundEmpty NIL) (eq (tabuleiro-preenchido-p tab i col) NIL)) ;Se nunca encontrou uma casa vazia e agora encontrou
 				(setf foundEmpty T))
-			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa está preenchida então temos um buraco
+			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa esta preenchida entao temos um buraco
 				(incf holeAmount)
 				(setf foundEmpty NIL))))
 		holeAmount))
