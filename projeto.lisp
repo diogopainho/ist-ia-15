@@ -370,11 +370,30 @@
         (list oldA))
     (T
         (let ((result NIL))
-            (dolist (a (funcall (problema-accoes p) e))
+            (dolist (a (reverse (funcall (problema-accoes p) e))) ;We had to reverse the list because the tests demanded it i guess
                 (setf result (recursive-pp-aux p (funcall (problema-resultado p) e a) a))
                 (when (not (eq result NIL))
                     (return-from recursive-pp-aux (cons oldA result)))))
         NIL)))
+
+;(defun iterative-pp (p)
+;    (let ((stack NIL)
+;		  (currState NIL)
+;		  (actionLst))
+;
+;		(stack (list (problema-estado-inicial p)))
+;        (loop
+;		    (when (null stack) (return-from iterative-pp NIL));if stack is empty there is no solution and so we failed
+;            
+;			;pop
+;			(setf currState (first stack))
+;			(setf stack (rest stack))
+;           
+;			(cond ((eq (funcall (problema-solucao p) currState) T) ;If we found a solution
+;                (return-from best-first-search actionLst))
+;            (T  
+;                (dolist (a (funcall (problema-accoes p) currState))
+;                    (setf stack (append (list (funcall (problema-resultado p) currState a)) stack))))))))
 
 ;(defstruct problema
 ;    estado-inicial // e o estado inical
