@@ -25,6 +25,7 @@
                 (if (not (eq (aref array1 i j) (aref array2 i j)))
                     (setf result NIL))))
         result))
+
 ;Funcao auxiliar que dadas duas listas, verifica se estas sao iguais
 (defun equal-lists (lst1 lst2)
     (cond((and (null lst1) (null lst2))
@@ -37,6 +38,54 @@
             NIL))))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; TIPO PRIORITY QUEUE ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defstruct priority-queue
+    (size 0)
+    (l NIL))
+
+(defun p-queue-empty (pq)
+    (if (zerop (priority-queue-size pq))
+        T
+        NIL))
+
+;@Robustness: should test if queue is empty before poping?
+(defun p-queue-pop (pq)
+    ;(p-queue-print-values pq "in pop")
+    (decf (priority-queue-size pq))
+    (pop (priority-queue-l pq)))
+
+(defun p-queue-insert (pq newEle newVal)
+    ;(p-queue-print-values pq "in insert")
+    (cond ((p-queue-empty pq)
+        (incf (priority-queue-size pq))
+        (setf (priority-queue-l pq) (list (list newEle newVal))))
+    (T
+        (let ((i 0))
+            (loop
+                (when (>= i (priority-queue-size pq)) (return))
+                (when (>= (second (nth i (priority-queue-l pq))) newVal) (return))
+                (incf i))
+            (incf (priority-queue-size pq))
+            
+            (cond ((eq i 0)
+                (setf (priority-queue-l pq) (cons (list newEle newVal) (priority-queue-l pq))))
+            (T
+                (push (list newEle newVal) (cdr (nthcdr (1- i) (priority-queue-l pq))))))))))
+
+              
+(defun p-queue-print-values (pq &optional (extraText ""))
+    (write extraText)
+    (write "priotity-queue values: (")
+    (dolist (ele (priority-queue-l pq))
+        (format T "~A, " (second ele)))
+	(write-line ")")
+	(write-line "")
+    (write-line ""))
+    
+    
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -249,7 +298,6 @@
             ;(print primeira-linha)
 
             ;Preenche tabuleiro
-            ;(write-line "2 dotimes")
             (dotimes (lin (array-dimension (accao-peca accao) 0))
                 (dotimes (col (array-dimension (accao-peca accao) 1))
                     (cond ((eq T (aref (accao-peca accao) lin col))
@@ -278,7 +326,7 @@
                     ((= linhas-apagadas 4) (setf (estado-pontos e) (+ (estado-pontos e) 800)))
                     (t (write-line "*******************PreMIO HACkeR(impossivel remover mais que 5 linhas)****************"))) ))))
 
-        ;(write-line "fim de res")
+
         e))
 
 ;Funcao que recebe um estado e retorna um valor de qualidade que corresponde ao valor negativo dos pontos ganhos ate ao momento
@@ -301,13 +349,7 @@
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;
-;(defstruct problema
-;    estado-inicial // e o estado inical
-;    solucao        // funcao que diz se o estado que recebe e uma solucao
-;    accoes         // recebe um estado e devolve uma lista de accoes
-;    resultado      // aplica uma accao num estado e devolve o novo estado
-;    custo-caminho) // devolve um valor que quanto mais baixo melhor (corresponde a qualidade do estado)
-
+;@Test: Preencher tabuleiro todo e testar a ver se retorna nil
 (defun procura-pp (p)
     (recursive-pp p))
 
@@ -325,14 +367,94 @@
                     (return-from recursive-pp-aux (cons oldA result)))))
         NIL)))
 
+;(defstruct problema
+;    estado-inicial // e o estado inical
+;    solucao        // funcao que diz se o estado que recebe e uma solucao
+;    accoes         // recebe um estado e devolve uma lista de accoes
+;    resultado      // aplica uma accao num estado e devolve o novo estado
+;    custo-caminho) // devolve um valor que quanto mais baixo melhor (corresponde a qualidade do estado)
+
+;Retorna a diferenca entre o max e o avg nivel das pecas caso o max seja maior que 4. Caso contrario devolve 0.
+(defun average-height-h (e)
+    (let ((currColH NIL) 
+	      (maxH 0) 
+		  (average 0))
+        (dotimes (i (tabuleiro-colunas (estado-tabuleiro e)))
+            (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
+            (when (> currColH maxH) (setf maxH currColH))
+			(setf average (+ average currColH)))
+		(setf average (round average (tabuleiro-colunas (estado-tabuleiro e))))
+		;(format T "average: ~A" average)
+		;(write-line "")
+		;(format T "max: ~A" maxH)
+		;(write-line "")
+        ;(if (> maxH 4)
+		;	(- maxH average)
+		;	0)))
+		(- maxH average)))
+
+(defun tabuleiro-buracos-coluna (tab col)
+	 (let ((holeAmount 0)
+		   (foundEmpty NIL))
+		(dotimes (i (tabuleiro-linhas tab))
+			(cond ((and (eq foundEmpty NIL) (eq (tabuleiro-preenchido-p tab i col) NIL)) ;Se nunca encontrou uma casa vazia e agora encontrou
+				(setf foundEmpty T))
+			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa está preenchida então temos um buraco
+				(incf holeAmount)
+				(setf foundEmpty NIL))))
+		holeAmount))
+
+(defun holes-h (e)
+    (let ((holeAmount 0))
+        (dotimes (i (tabuleiro-colunas (estado-tabuleiro e)))
+			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
+		holeAmount))
+	
 
 
-;(defun procura-A* (problema heuristica))
+(defun best-first-search (p F)
+    (let ((node NIL) 
+          (frontier (make-priority-queue))
+          (nodesExpanded 0)
+		  (nodesGenerated 0))
+        (p-queue-insert frontier (problema-estado-inicial p) (funcall F (problema-estado-inicial p)))
+        (loop
+            (incf nodesExpanded)
 
+            (if (p-queue-empty frontier) ;if queue has no nodes there is no solution and so we failed
+                (return-from best-first-search NIL)
+                (setf node (p-queue-pop frontier)))
+            (cond ((eq (funcall (problema-solucao p) (first node)) T) ;If we found a solution
+                (format T ">>> Nodes expanded: ~A" nodesExpanded)
+				(write-line "")
+                (format T ">>> Nodes generated: ~A" nodesGenerated)
+				(write-line "")
+                (return-from best-first-search (first node)))
+				;(return-from best-first-search 'LISTA_DE_ACCOES))
+            (T  
+                (let ((newE NIL))
+                    (dolist (a (funcall (problema-accoes p) (first node)))
+						(incf nodesGenerated)
+                        (setf newE (funcall (problema-resultado p) (first node) a))
+                        (p-queue-insert frontier newE (funcall F newE)))))))))
+            
+    
+
+(defun procura-A* (p h)
+    (best-first-search p #'(lambda(e) 
+                            (+ (funcall (problema-custo-caminho p) e) (funcall h e)))))
+   
+(defun procura-gananciosa (p h)
+	(best-first-search p #'(lambda(e) 
+							(funcall h e))))
+
+;IDEIAS: 
+;1.Nas ultimas 5 ou 6 pecas ter uma abordagem diferente e tentar so maximizar os pontos a todo o custo (para o tabuleiro acabar o mais vazio possivel)
+;
 ;(defun procura-best (array lista-pecas))
 
 ;;; definicao das configuracoes possiveis para cada peca
-;;peca i
+;;peca i 
 (defconstant peca-i0 (make-array (list 4 1) :initial-element T))
 (defconstant peca-i1 (make-array (list 1 4) :initial-element T))
 ;;peca l
@@ -472,21 +594,73 @@
 	(format T "|"))
 
 
-;;exemplo muito simples de um tabuleiro com a primeira e segunda linha quase todas preenchidas
-(setf t1 (cria-tabuleiro))
-;(dotimes (coluna 9)
-;	(tabuleiro-preenche! t1 0 coluna))
-;(dotimes (coluna 9)
-;	(tabuleiro-preenche! t1 1 coluna))
-(setf e1 (make-estado :tabuleiro t1 :pecas-por-colocar '(z z z z z z z z z z z z z z)))
-;(i i i i i i i i i i)))
-(setf p1
-	(make-problema :estado-inicial e1
-				   :solucao #'solucao
-				   :accoes #'accoes
-				   :resultado #'resultado
-				   :custo-caminho #'custo-oportunidade))
 
-(setf la (procura-pp p1))
-(print la)
-(executa-jogadas (problema-estado-inicial p1) la)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun test(funcao ppc heu)
+	(if (not (listp ppc)) (return-from test 'PPC_NOT_ALIST!!) NIL)
+	(if (not (functionp heu)) (return-from test 'HEU_NOT_AFUN!!) NIL)
+	(if (not (functionp funcao)) (return-from test 'HEU_NOT_AFUN!!) NIL)
+	
+	(write-line "")
+	(write-line "")
+	(write-line "")
+	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
+	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
+	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
+	(format T "->Testing ~A:" funcao)
+	(write-line "")
+	(format T "->ppc: (~{~A~^, ~})" ppc)
+	(write-line "")
+	(format T "->heuristica: ~A!" heu)
+	(write-line "")
+
+	(let* ((t1 (cria-tabuleiro))
+		  (e1 (make-estado :tabuleiro t1 :pecas-por-colocar ppc))
+		  (p1 (make-problema :estado-inicial e1
+				        :solucao #'solucao
+				        :accoes #'accoes
+				        :resultado #'resultado
+				        :custo-caminho #'custo-oportunidade)))
+
+	(funcall funcao p1 heu)))
+
+;;;;;;;TESTED VALUES;;;;;;;;
+;(print (time (testA* '(o o o o o) #'qualidade))) ;(15s, 842nodes)
+;(print (time (testA* '(o o o o o) #'average-height-h))) ;(0.8s, 278nodes)
+;(print (time (#'procura-A* '(i i i i) #'average-height-h))) ;(13880s, 2561nodes)
+;(print (time (test #'procura-gananciosa '(o o o o o) #'(lambda(e) (+ (average-height-h e) (qualidade e)))))) ;(0.002s, 6nodes expanded, 32 nodes generated)
+
+
+(time (setf e (test #'procura-gananciosa (random-pecas 100) #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
+(desenha-estado e)
+
+
+;(setf t1 (cria-tabuleiro))
+;(dotimes (coluna 9) (tabuleiro-preenche! t1 0 coluna))
+;(dotimes (coluna 9) (tabuleiro-preenche! t1 1 coluna))
+;(setf e1 (make-estado :tabuleiro t1 :pecas-por-colocar '(z z z z z z z z z z z z z)))  ;55s 56s 54s 55s
+;(setf e1 (make-estado :tabuleiro t1 :pecas-por-colocar '(o o o o o)))
+;(setf e1 (make-estado :tabuleiro t1 :pecas-por-colocar '(l z o t o o)))
+
+
+;(setf p1 (make-problema :estado-inicial e1
+;				        :solucao #'solucao
+;				        :accoes #'accoes
+;				        :resultado #'resultado
+;				        :custo-caminho #'custo-oportunidade))
+
+;;;;;;;TEST DFS;;;;;;;;;
+;(print (time (setf la (procura-pp p1))))
+;(print la)
+;(executa-jogadas (problema-estado-inicial p1) la)
+
+
+;;;;;TEST QUEUE-INSERT;;;;;;;;;
+;(setf q (make-priority-queue))
+;(p-queue-insert q 'C 3)
+;(p-queue-insert q 'B 2)
+;(p-queue-insert q 'A 1)
+;(print q)
+;(time (load (compile-file "Ia.lisp")))
