@@ -55,7 +55,7 @@
 (defun p-queue-pop (pq)
     ;(p-queue-print-values pq "in pop")
     (decf (priority-queue-size pq))
-    (pop (priority-queue-l pq)))
+    (first (pop (priority-queue-l pq))))
 
 (defun p-queue-insert (pq newEle newVal)
     ;(p-queue-print-values pq "in insert")
@@ -169,11 +169,11 @@
 (defun tabuleiros-iguais-p (tab1 tab2)
     (iguais-array-2D (tabuleiro-array tab1) (tabuleiro-array tab2)))
 
-;Transformador de saida que recebe um tabuleiro e devolve um novo array com 16 linhas e 10 colunas em que cada linha e coluna deverar contar o valor logico correspondente a cada posicao do tabuleiro
+;Transformador de saida que recebe um tabuleiro e devolve um novo array com 18 linhas e 10 colunas em que cada linha e coluna deverar contar o valor logico correspondente a cada posicao do tabuleiro
 (defun tabuleiro->array (tab)
     (copia-array-2D (tabuleiro-array tab)))
 
-;Transformador de entrada que recebe um array de 16 linhas e 10 colunas cujas posicoes tem de ter o mesmo valor logico T ou NIL e constroi um novo tabuleiro com o conteudo do array recebido
+;Transformador de entrada que recebe um array de 18 linhas e 10 colunas cujas posicoes tem de ter o mesmo valor logico T ou NIL e constroi um novo tabuleiro com o conteudo do array recebido
 (defun array->tabuleiro (array)
     (let ((tab (cria-tabuleiro)))
         (setf (tabuleiro-array tab) (copia-array-2D array))
@@ -438,33 +438,38 @@
 			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
 		holeAmount))
 	
-
+(defstruct node
+	estado
+	lst-accoes)
 
 (defun best-first-search (p F)
     (let ((node NIL) 
           (frontier (make-priority-queue))
           (nodesExpanded 0)
 		  (nodesGenerated 0))
-        (p-queue-insert frontier (problema-estado-inicial p) (funcall F (problema-estado-inicial p)))
+        (p-queue-insert frontier (make-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
+								 (funcall F (problema-estado-inicial p)))
         (loop
             (incf nodesExpanded)
 
             (if (p-queue-empty frontier) ;if queue has no nodes there is no solution and so we failed
                 (return-from best-first-search NIL)
                 (setf node (p-queue-pop frontier)))
-            (cond ((eq (funcall (problema-solucao p) (first node)) T) ;If we found a solution
-                (format T ">>> Nodes expanded: ~A" nodesExpanded)
-				(write-line "")
-                (format T ">>> Nodes generated: ~A" nodesGenerated)
-				(write-line "")
-                (return-from best-first-search (first node)))
-				;(return-from best-first-search 'LISTA_DE_ACCOES))
+
+            (cond ((eq (funcall (problema-solucao p) (node-estado node)) T) ;If we found a solution
+                ;(format T ">>> Nodes expanded: ~A" nodesExpanded)
+				;(write-line "")
+                ;(format T ">>> Nodes generated: ~A" nodesGenerated)
+				;(write-line "")
+                (return-from best-first-search (cdr (node-lst-accoes node))))
             (T  
-                (let ((newE NIL))
-                    (dolist (a (funcall (problema-accoes p) (first node)))
+                (let ((newE NIL) (prev-accoes (node-lst-accoes node)))
+                    (dolist (a (funcall (problema-accoes p) (node-estado node)))
 						(incf nodesGenerated)
-                        (setf newE (funcall (problema-resultado p) (first node) a))
-                        (p-queue-insert frontier newE (funcall F newE))))))))) 
+                        (setf newE (funcall (problema-resultado p) (node-estado node) a))
+                        (p-queue-insert frontier (make-node :estado newE													
+															:lst-accoes (append prev-accoes (list a)))
+												 (funcall F newE)))))))))
             
     
 
@@ -476,7 +481,19 @@
 	(best-first-search p #'(lambda(e)  
 							(funcall h e))))
 
-;(defun procura-best (array lista-pecas))
+(defun procura-best (tabArray lista-pecas)
+	(let* ((t1 (array->tabuleiro tabArray))
+		   (e1 (make-estado :pontos 0
+			     		    :pecas-por-colocar NIL
+						    :pecas-colocadas lista-pecas
+						    :tabuleiro t1))
+		   (p1 (make-problema :estado-inicial e1
+							  :solucao #'solucao
+							  :accoes #'accoes
+							  :resultado #'resultado
+							  :custo-caminho #'custo-oportunidade)))
+		;(procura-A* p1 #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
+		(procura-A* p1 #'average-height-h)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
@@ -518,5 +535,3 @@
 
 
 (load "utils.fas")
-
-
