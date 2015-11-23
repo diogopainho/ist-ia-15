@@ -237,7 +237,8 @@
         t
         NIL))
 
-; @See: How to make this a lambda
+;@See: How to make this a lambda
+;@Speed: Does "dotimes" only compute the limit one time? Not sure. A common for computes everytime, so we should put it in var outside.
 (defun accoes-aux (lst-accoes array-peca base-value)
     (dotimes (i (- base-value (array-dimension array-peca 1)))
         (setf lst-accoes (append lst-accoes (list (cria-accao i array-peca)))))
@@ -245,12 +246,12 @@
     lst-accoes)
 
 ;Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima pec a ser colocada
-; @See: Should we use with the cond or make it more generic? this way is faster no?
-(defun accoes (estado)
+;@See: Should we use with the cond or make it more generic? this way is faster no?
+(defun accoes (estado) 
     (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
           (peca (first (estado-pecas-por-colocar estado)))
-          (lst-accoes (list)))
-
+          (lst-accoes NIL))
+		   
         (cond ((eq peca 't) (setf lst-accoes (accoes-aux lst-accoes peca-t0 dotimes-value-base))
                             (setf lst-accoes (accoes-aux lst-accoes peca-t1 dotimes-value-base))
                             (setf lst-accoes (accoes-aux lst-accoes peca-t2 dotimes-value-base))
@@ -436,7 +437,7 @@
                     (dolist (a (funcall (problema-accoes p) (first node)))
 						(incf nodesGenerated)
                         (setf newE (funcall (problema-resultado p) (first node) a))
-                        (p-queue-insert frontier newE (funcall F newE)))))))))
+                        (p-queue-insert frontier newE (funcall F newE))))))))) 
             
     
 
@@ -445,7 +446,7 @@
                             (+ (funcall (problema-custo-caminho p) e) (funcall h e)))))
    
 (defun procura-gananciosa (p h)
-	(best-first-search p #'(lambda(e) 
+	(best-first-search p #'(lambda(e)  
 							(funcall h e))))
 
 ;(defun procura-best (array lista-pecas))
