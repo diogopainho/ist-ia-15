@@ -6,6 +6,9 @@
 ;;;; TOOLS ;;;;
 ;;;;;;;;;;;;;;;
 
+(defconstant colunas 10)
+(defconstant linhas 18)
+
 ;Funcao auxiliar que dado um array devolve outro array igual, com referencias independentes
 (defun copia-array-2D (array1)
     (let((array2 (make-array (array-dimensions array1))))
@@ -107,14 +110,11 @@
 
 ;Estrutura que define o tabuleiro como tendo linhas colunas e um array
 (defstruct tabuleiro
-    linhas
-    colunas
     array)
 
 ;Construtor que devolve um tabuleiro vazio
 (defun cria-tabuleiro ()
-    (let((lin 18) (col 10))
-        (make-tabuleiro :linhas lin :colunas col :array (make-array (list lin col) :initial-element NIL))))
+    (make-tabuleiro :array (make-array (list linhas colunas) :initial-element NIL)))
 
 ;Constrtor que recebe um tabuleiro e devolve um novo tabuleiro com o mesmo conteudo do tabuleiro recebido. E garantido que qualquer alteracao nao se propaga para o tabuleiro original
 (defun copia-tabuleiro (tab1)
@@ -130,13 +130,13 @@
 
 ;Selector que recebe um tabuleiro e uma coluna e devolve a altura da uma coluna, ou seja a posicao mais alta que esta preenchida nessa coluna
 (defun tabuleiro-altura-coluna (tab col)
-    (do ((i (- (tabuleiro-linhas tab) 1) (- i 1)))
+    (do ((i (- linhas 1) (- i 1)))
         ((or (= i -1) (tabuleiro-preenchido-p tab i col)) (+ i 1))
         ))
 
 ;Reconhecedor que recebe um tabuleiro e um inteiro correspondente a uma linha e devolve o valor logico com base nas posicoes da linha que estiverem preenchidas
 (defun tabuleiro-linha-completa-p (tab lin)
-    (let ((i (- (tabuleiro-colunas tab) 1)))
+    (let ((i (- colunas 1)))
 		(loop
 			(when (= i -1) (return t))
 			(when (not (tabuleiro-preenchido-p tab lin i)) (return NIL))
@@ -144,25 +144,25 @@
 
 ;Modificador que recebe um tabuleiro, uma linha e uma coluna e preenche a posicao dada no tabuleiro
 (defun tabuleiro-preenche! (tab lin col)
-    (cond ((or (>= lin (tabuleiro-linhas tab)) (>= col (tabuleiro-colunas tab))) '("error: tabuleiro-preenche"))
+    (cond ((or (>= lin linhas) (>= col colunas)) '("error: tabuleiro-preenche"))
     (t
         (setf (aref (tabuleiro-array tab) lin col) t) )))
 
 ;Modificador que recebe um tabuleiro e uma linha e altera o tabuleiro removendo a linha correspondente. As linhas que estao por baixo nao sao alteradas
 (defun tabuleiro-remove-linha! (tab lin)
     (do ((i lin (+ i 1)))
-        ((= i (- (tabuleiro-linhas tab) 1)) NIL)
-        (dotimes (j (tabuleiro-colunas tab))
+        ((= i (- linhas 1)) NIL)
+        (dotimes (j colunas)
             (setf (aref (tabuleiro-array tab) i j) (aref (tabuleiro-array tab) (+ i 1) j))))
-    (dotimes (i (tabuleiro-colunas tab))
-        (setf (aref (tabuleiro-array tab) (- (tabuleiro-linhas tab) 1) i) NIL)))
+    (dotimes (i colunas)
+        (setf (aref (tabuleiro-array tab) (- linhas 1) i) NIL)))
 
 ;Reconhecedor que recebe um tabuleiro e devolve o valor logico T se todas as posicoes do topo do tabuleiro estiverem preenchidas e NIL caso contrario
 (defun tabuleiro-topo-preenchido-p (tab)
-    (let ((i (- (tabuleiro-colunas tab) 1)))
+    (let ((i (- colunas 1)))
 		(loop
 			(when (= i -1) (return NIL))
-			(when (tabuleiro-preenchido-p tab (- (tabuleiro-linhas tab) 1) i) (return t))
+			(when (tabuleiro-preenchido-p tab (- linhas 1) i) (return t))
 			(setq i (- i 1)))))
 
 ;Teste que receve dois tabuleiros e devolve o valor logico T caso sejam iguais e NIL caso contrario
@@ -256,7 +256,7 @@
 	(when (eq (estado-terminal estado) t)
 		(return-from accoes NIL))
 
-    (let ((dotimes-value-base (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1))
+    (let ((dotimes-value-base (+ colunas 1))
           (peca (first (estado-pecas-por-colocar estado)))
           (lst-accoes NIL))
 		   
@@ -407,11 +407,11 @@
     (let ((currColH NIL) 
 	      (maxH 0) 
 		  (average 0))
-        (dotimes (i (tabuleiro-colunas (estado-tabuleiro e)))
+        (dotimes (i colunas)
             (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
             (when (> currColH maxH) (setf maxH currColH))
 			(setf average (+ average currColH)))
-		(setf average (round average (tabuleiro-colunas (estado-tabuleiro e))))
+		(setf average (round average colunas))
 		;(format T "average: ~A" average)
 		;(write-line "")
 		;(format T "max: ~A" maxH)
@@ -424,7 +424,7 @@
 (defun tabuleiro-buracos-coluna (tab col)
 	 (let ((holeAmount 0)
 		   (foundEmpty NIL))
-		(dotimes (i (tabuleiro-linhas tab))
+		(dotimes (i linhas)
 			(cond ((and (eq foundEmpty NIL) (eq (tabuleiro-preenchido-p tab i col) NIL)) ;Se nunca encontrou uma casa vazia e agora encontrou
 				(setf foundEmpty T))
 			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa esta preenchida entao temos um buraco
@@ -434,7 +434,7 @@
 
 (defun holes-h (e)
     (let ((holeAmount 0))
-        (dotimes (i (tabuleiro-colunas (estado-tabuleiro e)))
+        (dotimes (i colunas)
 			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
 		holeAmount))
 	
