@@ -2,41 +2,38 @@
 ;;;; Grupo 38 - Alameda - 72471 Michael Santos - 73245 Diogo Painho - 75219 Joao Franco ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;
-;;;; TOOLS ;;;;
-;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; UTILITY FUNTIONS ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant colunas 10)
-(defconstant linhas 18)
-
-;Funcao auxiliar que dado um array devolve outro array igual, com referencias independentes
+;;; copia-array-2D: array --> array
+;;; Funcao que recebe um array e devolve uma copia desse array.
 (defun copia-array-2D (array1)
-    (let((array2 (make-array (array-dimensions array1))))
-        (dotimes(i (array-dimension array1 0))
-            (dotimes(j (array-dimension array1 1))
+    (let ((array2 (make-array (array-dimensions array1))))
+        (dotimes (i (array-dimension array1 0))
+            (dotimes (j (array-dimension array1 1))
                 (setf (aref array2 i j) (aref array1 i j))))
         array2))
 
-; @FIXME:
-; quando descobre uma diferenca, coloca result a NIL e avalia o resto. Pouco
-; eficiente porque tem que ir ate ao fim.
-;Funcao auxiliar que dados dois arrays, verifica se estes sao iguais
+;;; iguais-array-2D: array x array --> boolean
+;;; Funcao que recebe dois arrays e retorna T caso estes sejam iguais e NIL caso contrario
+;;; @Robustness: Nao testa se os arrays tem a mesma dimensao (como e usado para testar se dois tabuleiros sao iguais nao e necessario)
 (defun iguais-array-2D(array1 array2)
-    (let ((result t))
-        (dotimes(i (array-dimension array1 0))
-            (dotimes(j (array-dimension array1 1))
-                (if (not (eq (aref array1 i j) (aref array2 i j)))
-                    (setf result NIL))))
-        result))
+	(dotimes (i (array-dimension array1 0))
+        (dotimes (j (array-dimension array1 1))
+            (if (not (eq (aref array1 i j) (aref array2 i j)))
+                (return-from iguais-array-2D NIL))))
+    T)
 
-;Funcao auxiliar que dadas duas listas, verifica se estas sao iguais
+;;; equal-lists: list x list --> boolean
+;;; Funcao que recebe duas listas e retorna T caso estas sejam iguais e NIL caso contrario
 (defun equal-lists (lst1 lst2)
-    (cond((and (null lst1) (null lst2))
+    (cond ((and (null lst1) (null lst2)) ;Se ambas sao nulas retorna t (iguais)
         t)
-    ((or (null lst1) (null lst2))
+    ((or (null lst1) (null lst2)) ;Caso apenas uma das listas seja nula entao nao tem a mesma dimensao logo retorna NIL (nao iguais)
         NIL)
     (t
-        (if (eq (car lst1) (car lst2))
+        (if (eq (car lst1) (car lst2)) ;Se os primeiros elementos sao iguais entao chama recursivamente com o resto da lista, se nao retorna NIL (nao iguais)
             (equal-lists (cdr lst1) (cdr lst2))
             NIL))))
 
@@ -45,96 +42,129 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PRIORITY QUEUE ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; priority-queue: Estrutura que define uma priority-queue que guarda o tamanho da fila e elementos.
+;;; Estes elementos sao um tuplo em que o primeiro e um elemento dado pelo utilizador quando insere na fila e o segundo 
+;;; um inteiro que representa o valor desse elemento. E com este valor que a fila e organizada do menor valor para o maior.
 (defstruct priority-queue
     (size 0)
-    (l NIL))
+    (pair NIL))
 
+;;; p-queue-empty: priority-queue --> boolean
+;;; Esta funcao retorna T caso a fila esteja vazia e NIL caso contrario
 (defun p-queue-empty (pq)
     (if (zerop (priority-queue-size pq))
         T
         NIL))
 
-;@Robustness: should test if queue is empty before poping?
+;;; p-queue-pop: priority-queue --> element
+;;; Esta funcao retira o primeiro tuplo da fila e retorna o elemento associado a esse tuplo.
+;;; @Robustness: should test if queue is empty before poping?
 (defun p-queue-pop (pq)
-    ;(p-queue-print-values pq "in pop")
     (decf (priority-queue-size pq))
-    (first (pop (priority-queue-l pq))))
+    (first (pop (priority-queue-pair pq))))
 
+;;; p-queue-insert: priority-queue x elemento x inteiro --> {}
+;;; Esta funcao insere um tuplo com o elemento e o valor dado nos argumentos pelo utilizador.
+;;; Este tuplo e inserido na fila de acordo com o seu valor, de modo a que a fila fique organizado do mais pequeno para o maior.
+;;; Em caso de empate de valores o ultimo a ser inserido fica mais a frenta na fila.
 (defun p-queue-insert (pq newEle newVal)
-    ;(p-queue-print-values pq "in insert")
-    (cond ((p-queue-empty pq)
+    (cond ((p-queue-empty pq) ;Caso seja o nosso primeiro insert (isto e a fila esta vazia)
         (incf (priority-queue-size pq))
-        (setf (priority-queue-l pq) (list (list newEle newVal))))
+        (setf (priority-queue-pair pq) (list (list newEle newVal))))
     (T
         (let ((i 0))
             (loop
-                (when (>= i (priority-queue-size pq)) (return))
-                (when (>= (second (nth i (priority-queue-l pq))) newVal) (return))
+                (when (>= i (priority-queue-size pq)) (return)) ;Caso tenhamos chegado ao fim da fila break (caso o valor dado seja maior que todos os valores na fila)
+                (when (>= (second (nth i (priority-queue-pair pq))) newVal) (return)) ;Caso o valor que esta a ser iterado na fila seja >= que o valor dado - break.
                 (incf i))
-            (incf (priority-queue-size pq))
             
-            (cond ((eq i 0)
-                (setf (priority-queue-l pq) (cons (list newEle newVal) (priority-queue-l pq))))
+			(incf (priority-queue-size pq))
+            (cond ((eq i 0) ;colocar tuplo no inicio da lista
+                (setf (priority-queue-pair pq) (cons (list newEle newVal) (priority-queue-pair pq))))
             (T
-                (push (list newEle newVal) (cdr (nthcdr (1- i) (priority-queue-l pq))))))))))
+                (push (list newEle newVal) (cdr (nthcdr (1- i) (priority-queue-pair pq))))))))))
 
-              
-(defun p-queue-print-values (pq &optional (extraText ""))
-    (write extraText)
-    (write "priotity-queue values: (")
-    (dolist (ele (priority-queue-l pq))
-        (format T "~A, " (second ele)))
-	(write-line ")")
-	(write-line "")
-    (write-line ""))
-    
+
     
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
-;Construtor que dado um inteiro e uma peca, devolve um par com os dois elementos designado por accao
+
+;;; cria-accao: inteiro x peca --> accao
+;;; Funcao que recebe um inteiro que representa o numero da coluna e uma peca e retorna uma accao correspondente (um par com os dois elementos).
 (defun cria-accao (coluna peca)
   (cons coluna peca))
 
-;Selector que dada uma accao devolve a coluna mais a esquerda a partir da qual a peca vai ser colocada
+;;; accao-coluna: accao --> inteiro
+;;; Selector que recebe uma accao e devolve a coluna mais a esquerda a partir da qual a peca vai ser colocada.
 (defun accao-coluna (a)
   (car a))
 
-;Selector que dada uma accao devolve o array com a configuracao geometrica exacta com que vai ser colocada
+;;; accao-peca: accao --> peca
+;;; Selector que recebe uma accao e devolve a peca correspondente a essa accao.
 (defun accao-peca (a)
   (cdr a))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO TABULEIRO ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;Estrutura que define o tabuleiro como tendo linhas colunas e um array
+;;; colunas: Constante que representa o numero de colunas de um tabuleiro.
+(defconstant colunas 10)
+
+;;; linhas: Constante que representa o numero de linhas de um tabuleiro.
+(defconstant linhas 18)
+
+;;; tabuleiro: Estrutura que define o tabuleiro como um array bi-dimensional, em que cada posicao representa uma casa do tabuleiro.
 (defstruct tabuleiro
     array)
 
-;Construtor que devolve um tabuleiro vazio
+;;; cria-tabuleiro: {} --> tabuleiro
+;;; Construtor que devolve um tabuleiro vazio.
 (defun cria-tabuleiro ()
     (make-tabuleiro :array (make-array (list linhas colunas) :initial-element NIL)))
 
-;Constrtor que recebe um tabuleiro e devolve um novo tabuleiro com o mesmo conteudo do tabuleiro recebido. E garantido que qualquer alteracao nao se propaga para o tabuleiro original
+;;; copia-tabuleiro: tabuleiro --> tabuleiro
+;;; Construtor de copia que recebe um tabuleiro e devolve um novo tabuleiro com o mesmo conteudo do tabuleiro recebido. 
+;;; E garantido que qualquer alteracao nao se propaga para o tabuleiro original.
 (defun copia-tabuleiro (tab1)
-    (let((tab2 (copy-tabuleiro tab1)))
-        (setf (tabuleiro-array tab2) (copia-array-2D (tabuleiro-array tab1)))
+    (let ((tab2 (copy-tabuleiro tab1)))
+		(setf (tabuleiro-array tab2) (copia-array-2D (tabuleiro-array tab1)))
         tab2))
 
-;Seletor que recebe um tabuleiro, um inteiro correspondente a linha e coluna e devolve o valor logico caso essa posicao esteja preenchida ou nao
+;;; tabuleiros-iguais-p: tabuleiro x tabuleiro --> boolean
+;;; Funcao que receve dois tabuleiros e devolve T caso sejam iguais e NIL caso contrario.
+(defun tabuleiros-iguais-p (tab1 tab2)
+    (iguais-array-2D (tabuleiro-array tab1) (tabuleiro-array tab2)))
+
+;;; tabuleiro->array: tabuleiro --> array
+;;; Transformador de saida que recebe um tabuleiro e devolve um novo array com 18 linhas e 10 colunas em que cada linha e coluna contem 
+;;; o valor logico correspondente a cada posicao do tabuleiro.
+(defun tabuleiro->array (tab)
+    (copia-array-2D (tabuleiro-array tab)))
+
+;;; array->tabuleiro: array --> tabuleiro
+;;; Transformador de entrada que recebe um array de 18 linhas e 10 colunas cujas posicoes tem o valor logico T ou NIL e 
+;;; constroi um novo tabuleiro com o conteudo do array recebido.
+(defun array->tabuleiro (array)
+    (let ((tab (cria-tabuleiro)))
+        (setf (tabuleiro-array tab) (copia-array-2D array))
+        tab))
+
+;;; tabuleiro-preenchido-p: tabuleiro x inteiro x inteiro --> boolean
+;;; Funcao que recebe um tabuleiro, um inteiro correspondente a linha e um inteiro corresponte a coluna.
+;;; Devolve T caso a posicao correspondente esteja preenchida e NIL caso contrario.
 (defun tabuleiro-preenchido-p (tab lin col)
     (if (eq (aref (tabuleiro-array tab) lin col) NIL)
         NIL
         t))
 
-;Selector que recebe um tabuleiro e uma coluna e devolve a altura da uma coluna, ou seja a posicao mais alta que esta preenchida nessa coluna
-(defun tabuleiro-altura-coluna (tab col)
-    (do ((i (- linhas 1) (- i 1)))
-        ((or (= i -1) (tabuleiro-preenchido-p tab i col)) (+ i 1))
-        ))
-
-;Reconhecedor que recebe um tabuleiro e um inteiro correspondente a uma linha e devolve o valor logico com base nas posicoes da linha que estiverem preenchidas
+;;; tabuleiro-linha-completa-p: tabuleiro x inteiro --> boolean
+;;; Reconhecedor que recebe um tabuleiro e um inteiro correspondente a uma linha.
+;;; Devolve T se todas as posicoes da linha estiverem preenchidas e NIL caso contrario.
 (defun tabuleiro-linha-completa-p (tab lin)
     (let ((i (- colunas 1)))
 		(loop
@@ -142,13 +172,48 @@
 			(when (not (tabuleiro-preenchido-p tab lin i)) (return NIL))
 			(setf i (- i 1)))))
 
-;Modificador que recebe um tabuleiro, uma linha e uma coluna e preenche a posicao dada no tabuleiro
-(defun tabuleiro-preenche! (tab lin col)
-    (cond ((or (>= lin linhas) (>= col colunas)) '("error: tabuleiro-preenche"))
-    (t
-        (setf (aref (tabuleiro-array tab) lin col) t) )))
+;;; tabuleiro-topo-preenchido-p: tabuleiro --> boolean
+;;; Reconhecedor que recebe um tabuleiro e devolve o T se todas as posicoes do topo do tabuleiro estiverem preenchidas e NIL caso contrario.
+(defun tabuleiro-topo-preenchido-p (tab)
+    (let ((i (- colunas 1)))
+		(loop
+			(when (= i -1) (return NIL))
+			(when (tabuleiro-preenchido-p tab (- linhas 1) i) (return t))
+			(setf i (- i 1)))))
 
-;Modificador que recebe um tabuleiro e uma linha e altera o tabuleiro removendo a linha correspondente. As linhas que estao por baixo nao sao alteradas
+;;; tabuleiro-altura-coluna: tabuleiro x inteiro --> inteiro
+;;; Funcao que recebe um tabuleiro e um inteiro correspondente a uma coluna.
+;;; Devolve um inteiro corresponte a altura dessa mesma coluna, ou seja a posicao mais alta que esta preenchida nessa coluna.
+(defun tabuleiro-altura-coluna (tab col)
+    (do ((i (- linhas 1) (- i 1)))
+        ((or (= i -1) (tabuleiro-preenchido-p tab i col)) (+ i 1))))
+
+;;; tabuleiro-buracos-coluna: tabuleiro x inteiro --> inteiro
+;;; Funcao que recebe um tabuleiro e um inteiro correspondente ao numero de coluna e
+;;; devolve o numero de "buracos" nessa coluna. Um "buraco" e um espaco em branco na coluna
+;;; quando ainda existem posicoes acima ocupadas.
+(defun tabuleiro-buracos-coluna (tab col)
+	 (let ((holeAmount 0) (foundEmpty NIL))
+		(dotimes (i linhas)
+			(cond ((and (eq foundEmpty NIL) (eq (tabuleiro-preenchido-p tab i col) NIL)) ;Se nunca encontrou uma casa vazia e agora encontrou
+				(setf foundEmpty T))
+			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa esta preenchida entao temos um buraco
+				(incf holeAmount)
+				(setf foundEmpty NIL))))
+		holeAmount))
+
+;;; tabuleiro-preenche!: tabuleiro x inteiro x inteiro --> {}
+;;; Modificador que recebe um tabuleiro, um inteiro correspondente ao numero da linha e um inteiro correspondente ao numero da coluna e
+;;; preenche a posicao dada no tabuleiro.
+(defun tabuleiro-preenche! (tab lin col)
+    (cond ((or (>= lin linhas) (>= col colunas))  ;caso linhas ou colunas estejam fora do tabuleiro devolve msg de erro
+		'("error: tabuleiro-preenche"))
+    (t
+        (setf (aref (tabuleiro-array tab) lin col) t))))
+
+;;; tabuleiro-remove-linha!: tabuleiro x inteiro --> {}
+;;; Modificador que recebe um tabuleiro e um inteiro correspondente ao numero da linha e altera o tabuleiro removendo a linha correspondente. 
+;;; As linhas acima descem uma linha e as linhas que estao por baixo nao sao alteradas.
 (defun tabuleiro-remove-linha! (tab lin)
     (do ((i lin (+ i 1)))
         ((= i (- linhas 1)) NIL)
@@ -157,27 +222,7 @@
     (dotimes (i colunas)
         (setf (aref (tabuleiro-array tab) (- linhas 1) i) NIL)))
 
-;Reconhecedor que recebe um tabuleiro e devolve o valor logico T se todas as posicoes do topo do tabuleiro estiverem preenchidas e NIL caso contrario
-(defun tabuleiro-topo-preenchido-p (tab)
-    (let ((i (- colunas 1)))
-		(loop
-			(when (= i -1) (return NIL))
-			(when (tabuleiro-preenchido-p tab (- linhas 1) i) (return t))
-			(setq i (- i 1)))))
-
-;Teste que receve dois tabuleiros e devolve o valor logico T caso sejam iguais e NIL caso contrario
-(defun tabuleiros-iguais-p (tab1 tab2)
-    (iguais-array-2D (tabuleiro-array tab1) (tabuleiro-array tab2)))
-
-;Transformador de saida que recebe um tabuleiro e devolve um novo array com 18 linhas e 10 colunas em que cada linha e coluna deverar contar o valor logico correspondente a cada posicao do tabuleiro
-(defun tabuleiro->array (tab)
-    (copia-array-2D (tabuleiro-array tab)))
-
-;Transformador de entrada que recebe um array de 18 linhas e 10 colunas cujas posicoes tem de ter o mesmo valor logico T ou NIL e constroi um novo tabuleiro com o conteudo do array recebido
-(defun array->tabuleiro (array)
-    (let ((tab (cria-tabuleiro)))
-        (setf (tabuleiro-array tab) (copia-array-2D array))
-        tab))
+		
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ESTADO ;;;;
@@ -420,17 +465,6 @@
 		;	(- maxH average)
 		;	0)))
 		(- maxH average)))
-
-(defun tabuleiro-buracos-coluna (tab col)
-	 (let ((holeAmount 0)
-		   (foundEmpty NIL))
-		(dotimes (i linhas)
-			(cond ((and (eq foundEmpty NIL) (eq (tabuleiro-preenchido-p tab i col) NIL)) ;Se nunca encontrou uma casa vazia e agora encontrou
-				(setf foundEmpty T))
-			((and (eq foundEmpty T) (eq (tabuleiro-preenchido-p tab i col) T)) ;Se encontrou empty e agora a casa esta preenchida entao temos um buraco
-				(incf holeAmount)
-				(setf foundEmpty NIL))))
-		holeAmount))
 
 (defun holes-h (e)
     (let ((holeAmount 0))
