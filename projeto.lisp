@@ -502,7 +502,7 @@
 	(if (not (listp ppc)) (return-from test 'PPC_NOT_ALIST!!) NIL)
 	(if (not (functionp heu)) (return-from test 'HEU_NOT_AFUN!!) NIL)
 	(if (not (functionp funcao)) (return-from test 'HEU_NOT_AFUN!!) NIL)
-	
+	 
 	(write-line "")
 	(write-line "")
 	(write-line "")
