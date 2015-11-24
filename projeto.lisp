@@ -484,8 +484,8 @@
 (defun procura-best (tabArray lista-pecas)
 	(let* ((t1 (array->tabuleiro tabArray))
 		   (e1 (make-estado :pontos 0
-			     		    :pecas-por-colocar NIL
-						    :pecas-colocadas lista-pecas
+			     		    :pecas-por-colocar lista-pecas
+						    :pecas-colocadas NIL
 						    :tabuleiro t1))
 		   (p1 (make-problema :estado-inicial e1
 							  :solucao #'solucao
@@ -493,7 +493,8 @@
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
 		;(procura-A* p1 #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
-		(procura-A* p1 #'average-height-h)))
+		; (procura-A* p1 #'average-height-h)))
+        (procura-A* p1 #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
