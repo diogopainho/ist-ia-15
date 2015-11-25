@@ -1,0 +1,6 @@
+Informação para o relatório:
+
+- Definimos como constant a lista de acções possíveis para cada peça uma vez que, embora torne o programa menos genérico, poupa-nos o tempo 
+  e memória de ter de estar sempre a recalcular e recriar todas as vezes que é necessário. Verificámos que a poupança foi significativamente 
+  o suficiente para tomarmos esta decisão. Deixámos ainda assim no código uma função que gera dinamicamente esta lista de acções, 
+  para que, caso sejam adicionadas novas peças, seja fácil determinar os valores necessários rapidamente.

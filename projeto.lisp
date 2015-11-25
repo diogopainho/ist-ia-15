@@ -228,14 +228,15 @@
 ;;;; TIPO ESTADO ;;;;
 ;;;;;;;;;;;;;;;;;;;;;
 
-;Estrutura que define o estado com tendo pontos, pecas por colocar, pecas colocadas e um tabuleiro
+;;; estado: Estrutura que define o estado com tendo pontos, pecas por colocar, pecas colocadas e um tabuleiro
 (defstruct estado
     (pontos 0)
     pecas-por-colocar
     pecas-colocadas ;lista ordenada da peca mas recente para a mais antiga
     tabuleiro)
 
-;Construtor que recebe um estado e devolve um estado cujo conteudo deve ser copiado a partir do estado original
+;;; copia-estado: estado --> estado
+;;; Construtor que recebe um estado e devolve uma copia do estado recebido.
 (defun copia-estado (estado1)
     (let ((estado2 (copy-estado estado1)))
         (setf (estado-tabuleiro estado2) (copia-tabuleiro (estado-tabuleiro estado1)))
@@ -243,9 +244,10 @@
         (setf (estado-pecas-colocadas estado2) (copy-list (estado-pecas-colocadas estado1)))
         estado2))
 
-;Teste que recebe dois estados e devolve o valor logico T caso os estados sejam iguais ou NIL caso constrario
+;;; estados-iguais-p: estado x estado --> boolean
+;;; Teste que recebe dois estados e devolve T caso os estados sejam iguais ou NIL caso contrario
 (defun estados-iguais-p (e1 e2)
-    (cond((and (= (estado-pontos e1) (estado-pontos e2))
+    (cond ((and (= (estado-pontos e1) (estado-pontos e2))
                (tabuleiros-iguais-p (estado-tabuleiro e1) (estado-tabuleiro e2))
                (equal-lists (estado-pecas-por-colocar e1) (estado-pecas-por-colocar e2))
                (equal-lists (estado-pecas-colocadas e1) (estado-pecas-colocadas e2)))
@@ -253,22 +255,29 @@
     (t
         NIL)))
 
-;Reconhecedor que dado um estado, devolve o valor logico T se corresponder a um estado final onde o jogador ja nao pode fazer mais jogadas e falso caso contrario
-;Um estado e considerado final se o tabuleiro nao tiver atingido o topo ou se ja nao existirem pecas por colocar
+;;; estado-final-p: estado --> boolean
+;;; Reconhecedor que recebe um estado e devolve T se corresponder a um estado final e NIL caso contrario.
+;;; Um estado e final se uma peca tiver atingido o topo do tabuleiro ou se ja nao existirem pecas por colocar.
 (defun estado-final-p (estado)
-    (if(or(tabuleiro-topo-preenchido-p (estado-tabuleiro estado))
-          (null (estado-pecas-por-colocar estado))) t NIL))
+    (if (or (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)) (null (estado-pecas-por-colocar estado))) 
+		t 
+		NIL))
 
+;;; estado-terminal: estado --> boolean
+;;; Reconhecedor que recebe um estado e devolve T caso o estado seja terminal e NIL caso contrario.
+;;; Um estado e terminal quando uma peca ja atingiu o topo do tabuleiro.
 (defun estado-terminal (estado)
     (if (tabuleiro-topo-preenchido-p (estado-tabuleiro estado)) 
-	t 
-	NIL))
+		t 
+		NIL))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PROBLEMA ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-;Estrutura que define o problema como tendo estado-inicial, solucao, accoes, resultado e o custo-caminho
+;;; problema: Estrutura que define um problema como tendo estado-inicial, solucao, accoes, resultado e o custo-caminho
 (defstruct problema
     estado-inicial
     solucao
@@ -276,82 +285,140 @@
     resultado
     custo-caminho)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; FUNCOES DO PROBLEMA DE PROCURA ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;Funcao que recebe um estado e devolve o valor logico verdade se o estado recebido corresponder a uma solucao e falso caso constrario
-;Um estado do jogo Tetris e considerado colucao se o topo do tabuleiro nao estiver preenchido e se ja nao existirem pecas por colocar
+;;; solucao: estado --> boolean
+;;; Funcao que recebe um estado e devolve T se o estado recebido corresponder a uma solucao e NIL caso constrario
+;;; Um estado do jogo Tetris e considerado solucao se o topo do tabuleiro nao estiver preenchido e se ja nao existirem pecas por colocar,
+;;; ou seja todas as pecas foram colocadas com sucesso.
 (defun solucao (estado)
     (if (and (null (estado-pecas-por-colocar estado)) (not (tabuleiro-topo-preenchido-p (estado-tabuleiro estado))))
         t
         NIL))
 
-;@See: How to make this a lambda
-;@Speed: Does "dotimes" only compute the limit one time? Not sure. A common for computes everytime, so we should put it in var outside.
-(defun accoes-aux (lst-accoes array-peca base-value)
-    (dotimes (i (- base-value (array-dimension array-peca 1)))
+;;; accoes-aux-generico: lista-de-accoes x array --> lista-de-accoes
+;;; Funcao auxiliar a 'accoes-generico' que recebe uma lista de accoes e um array que reprenta a configuracao de uma peca.
+;;; Devolve a lista de accoes para a configuracao da peca recebida concatenada com a lista de accoes recebida nos argumentos.
+(defun accoes-aux-generico (lst-accoes array-peca)
+    (dotimes (i (- (+ colunas 1) (array-dimension array-peca 1)))
         (setf lst-accoes (append lst-accoes (list (cria-accao i array-peca)))))
-        ;(setf lst-accoes (cons (cria-accao i array-peca) lst-accoes))) @See: this would give us the list in reverse order. Would it be so much faster that reversing the list afterwards would conpensate? Dont think so
     lst-accoes)
 
-;Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima pec a ser colocada
-;@See: Should we use with the cond or make it more generic? this way is faster no?
-(defun accoes (estado) 
+;;; accoes-generico: estado --> lista-de-accoes
+;;; Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima peca a ser colocada.
+;;; Esta funcao e mais generica e consequentemente mais lenta do que a funcao usada 'accoes', mas e mais facil para gerar 
+;;; valores caso por exemplo uma peca nova tenha de ser adicionada.
+(defun accoes-generico (estado) 
 	(when (eq (estado-terminal estado) t)
-		(return-from accoes NIL))
+		(return-from accoes-generico NIL))
 
-    (let ((dotimes-value-base (+ colunas 1))
-          (peca (first (estado-pecas-por-colocar estado)))
+    (let ((peca (first (estado-pecas-por-colocar estado)))
           (lst-accoes NIL))
 		   
-        (cond ((eq peca 't) (setf lst-accoes (accoes-aux lst-accoes peca-t0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-t1 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-t2 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-t3 dotimes-value-base)))
-              ((eq peca 'l) (setf lst-accoes (accoes-aux lst-accoes peca-l0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-l1 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-l2 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-l3 dotimes-value-base)))
-              ((eq peca 'j) (setf lst-accoes (accoes-aux lst-accoes peca-j0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-j1 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-j2 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-j3 dotimes-value-base)))
-              ((eq peca 'i) (setf lst-accoes (accoes-aux lst-accoes peca-i0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-i1 dotimes-value-base)))
-              ((eq peca 's) (setf lst-accoes (accoes-aux lst-accoes peca-s0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-s1 dotimes-value-base)))
-              ((eq peca 'z) (setf lst-accoes (accoes-aux lst-accoes peca-z0 dotimes-value-base))
-                            (setf lst-accoes (accoes-aux lst-accoes peca-z1 dotimes-value-base)))
-              ((eq peca 'o) (setf lst-accoes (accoes-aux lst-accoes peca-o0 dotimes-value-base))))))
+        (cond ((eq peca 't) (setf lst-accoes (accoes-aux lst-accoes peca-t0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t1))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t2))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-t3)))
+              ((eq peca 'l) (setf lst-accoes (accoes-aux lst-accoes peca-l0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l1))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l2))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-l3)))
+              ((eq peca 'j) (setf lst-accoes (accoes-aux lst-accoes peca-j0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j1))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j2))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-j3)))
+              ((eq peca 'i) (setf lst-accoes (accoes-aux lst-accoes peca-i0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-i1)))
+              ((eq peca 's) (setf lst-accoes (accoes-aux lst-accoes peca-s0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-s1)))
+              ((eq peca 'z) (setf lst-accoes (accoes-aux lst-accoes peca-z0))
+                            (setf lst-accoes (accoes-aux lst-accoes peca-z1)))
+              ((eq peca 'o) (setf lst-accoes (accoes-aux lst-accoes peca-o0))))))
 
+;;; Constantes: Cada uma destas constantes representam uma lista que guarda todas as accoes possiveis com cada peca que lhes corresponde.
+;;; Embora fique mais 'feio' torna o resolucao dos problemas mais eficiente uma vez que nao tem de recalcular valores constantetmente,
+;;; e desta forma poupa-se tempo e espaco. Estes valores foram gerados com uma funcao generica mais lenta 'accoes-genericas'.
+(defconstant accoes-t '((0 . #2A((T T T) (NIL T NIL)))   (1 . #2A((T T T) (NIL T NIL)))   (2 . #2A((T T T) (NIL T NIL)))   (3 . #2A((T T T) (NIL T NIL)))   (4 . #2A((T T T) (NIL T NIL)))               
+						(5 . #2A((T T T) (NIL T NIL)))   (6 . #2A((T T T) (NIL T NIL)))   (7 . #2A((T T T) (NIL T NIL)))   (0 . #2A((T NIL) (T T) (T NIL))) (1 . #2A((T NIL) (T T) (T NIL)))           
+						(2 . #2A((T NIL) (T T) (T NIL))) (3 . #2A((T NIL) (T T) (T NIL))) (4 . #2A((T NIL) (T T) (T NIL))) (5 . #2A((T NIL) (T T) (T NIL))) (6 . #2A((T NIL) (T T) (T NIL)))     
+						(7 . #2A((T NIL) (T T) (T NIL))) (8 . #2A((T NIL) (T T) (T NIL))) (0 . #2A((NIL T NIL) (T T T)))   (1 . #2A((NIL T NIL) (T T T)))   (2 . #2A((NIL T NIL) (T T T)))           
+						(3 . #2A((NIL T NIL) (T T T)))   (4 . #2A((NIL T NIL) (T T T)))   (5 . #2A((NIL T NIL) (T T T)))   (6 . #2A((NIL T NIL) (T T T)))   (7 . #2A((NIL T NIL) (T T T)))               
+						(0 . #2A((NIL T) (T T) (NIL T))) (1 . #2A((NIL T) (T T) (NIL T))) (2 . #2A((NIL T) (T T) (NIL T))) (3 . #2A((NIL T) (T T) (NIL T))) (4 . #2A((NIL T) (T T) (NIL T)))     
+						(5 . #2A((NIL T) (T T) (NIL T))) (6 . #2A((NIL T) (T T) (NIL T))) (7 . #2A((NIL T) (T T) (NIL T))) (8 . #2A((NIL T) (T T) (NIL T)))))
 
-        ;#'(lambda(array-peca)
-        ;    (dotimes (i (- (+ (tabuleiro-colunas (estado-tabuleiro estado)) 1) (array-dimension peca-t1 1)))
-        ;        (setf lst-accoes (concatenate 'list lst-accoes (list (cria-accao i peca))))))))
+(defconstant accoes-l '((0 . #2A((T T) (T NIL) (T NIL))) (1 . #2A((T T) (T NIL) (T NIL))) (2 . #2A((T T) (T NIL) (T NIL))) (3 . #2A((T T) (T NIL) (T NIL))) (4 . #2A((T T) (T NIL) (T NIL)))     
+						(5 . #2A((T T) (T NIL) (T NIL))) (6 . #2A((T T) (T NIL) (T NIL))) (7 . #2A((T T) (T NIL) (T NIL))) (8 . #2A((T T) (T NIL) (T NIL))) (0 . #2A((T NIL NIL) (T T T)))       
+						(1 . #2A((T NIL NIL) (T T T)))   (2 . #2A((T NIL NIL) (T T T)))   (3 . #2A((T NIL NIL) (T T T)))   (4 . #2A((T NIL NIL) (T T T)))   (5 . #2A((T NIL NIL) (T T T)))               
+						(6 . #2A((T NIL NIL) (T T T)))   (7 . #2A((T NIL NIL) (T T T)))   (0 . #2A((NIL T) (NIL T) (T T))) (1 . #2A((NIL T) (NIL T) (T T))) (2 . #2A((NIL T) (NIL T) (T T)))         
+						(3 . #2A((NIL T) (NIL T) (T T))) (4 . #2A((NIL T) (NIL T) (T T))) (5 . #2A((NIL T) (NIL T) (T T))) (6 . #2A((NIL T) (NIL T) (T T))) (7 . #2A((NIL T) (NIL T) (T T)))     
+						(8 . #2A((NIL T) (NIL T) (T T))) (0 . #2A((T T T) (NIL NIL T)))   (1 . #2A((T T T) (NIL NIL T)))   (2 . #2A((T T T) (NIL NIL T)))   (3 . #2A((T T T) (NIL NIL T)))             
+						(4 . #2A((T T T) (NIL NIL T)))   (5 . #2A((T T T) (NIL NIL T)))   (6 . #2A((T T T) (NIL NIL T)))   (7 . #2A((T T T) (NIL NIL T)))))
 
-;
+(defconstant accoes-j '((0 . #2A((T T) (NIL T) (NIL T))) (1 . #2A((T T) (NIL T) (NIL T))) (2 . #2A((T T) (NIL T) (NIL T))) (3 . #2A((T T) (NIL T) (NIL T))) (4 . #2A((T T) (NIL T) (NIL T)))     
+						(5 . #2A((T T) (NIL T) (NIL T))) (6 . #2A((T T) (NIL T) (NIL T))) (7 . #2A((T T) (NIL T) (NIL T))) (8 . #2A((T T) (NIL T) (NIL T))) (0 . #2A((T T T) (T NIL NIL)))       
+						(1 . #2A((T T T) (T NIL NIL)))   (2 . #2A((T T T) (T NIL NIL)))   (3 . #2A((T T T) (T NIL NIL)))   (4 . #2A((T T T) (T NIL NIL)))   (5 . #2A((T T T) (T NIL NIL)))               
+						(6 . #2A((T T T) (T NIL NIL)))   (7 . #2A((T T T) (T NIL NIL)))   (0 . #2A((T NIL) (T NIL) (T T))) (1 . #2A((T NIL) (T NIL) (T T))) (2 . #2A((T NIL) (T NIL) (T T)))         
+						(3 . #2A((T NIL) (T NIL) (T T))) (4 . #2A((T NIL) (T NIL) (T T))) (5 . #2A((T NIL) (T NIL) (T T))) (6 . #2A((T NIL) (T NIL) (T T))) (7 . #2A((T NIL) (T NIL) (T T)))     
+						(8 . #2A((T NIL) (T NIL) (T T))) (0 . #2A((NIL NIL T) (T T T)))   (1 . #2A((NIL NIL T) (T T T)))   (2 . #2A((NIL NIL T) (T T T)))   (3 . #2A((NIL NIL T) (T T T)))             
+						(4 . #2A((NIL NIL T) (T T T)))   (5 . #2A((NIL NIL T) (T T T)))   (6 . #2A((NIL NIL T) (T T T)))   (7 . #2A((NIL NIL T) (T T T)))))
+
+(defconstant accoes-i '((0 . #2A((T) (T) (T) (T))) (1 . #2A((T) (T) (T) (T))) (2 . #2A((T) (T) (T) (T))) (3 . #2A((T) (T) (T) (T))) (4 . #2A((T) (T) (T) (T))) (5 . #2A((T) (T) (T) (T)))        
+						(6 . #2A((T) (T) (T) (T))) (7 . #2A((T) (T) (T) (T))) (8 . #2A((T) (T) (T) (T))) (9 . #2A((T) (T) (T) (T))) (0 . #2A((T T T T)))       (1 . #2A((T T T T)))                    
+						(2 . #2A((T T T T)))       (3 . #2A((T T T T)))       (4 . #2A((T T T T)))       (5 . #2A((T T T T)))       (6 . #2A((T T T T)))))
+
+(defconstant accoes-s '((0 . #2A((T T NIL) (NIL T T)))   (1 . #2A((T T NIL) (NIL T T)))   (2 . #2A((T T NIL) (NIL T T)))   (3 . #2A((T T NIL) (NIL T T)))   (4 . #2A((T T NIL) (NIL T T)))               
+						(5 . #2A((T T NIL) (NIL T T)))   (6 . #2A((T T NIL) (NIL T T)))   (7 . #2A((T T NIL) (NIL T T)))   (0 . #2A((NIL T) (T T) (T NIL))) (1 . #2A((NIL T) (T T) (T NIL)))           
+						(2 . #2A((NIL T) (T T) (T NIL))) (3 . #2A((NIL T) (T T) (T NIL))) (4 . #2A((NIL T) (T T) (T NIL))) (5 . #2A((NIL T) (T T) (T NIL))) (6 . #2A((NIL T) (T T) (T NIL)))     
+						(7 . #2A((NIL T) (T T) (T NIL))) (8 . #2A((NIL T) (T T) (T NIL)))))
+ 
+(defconstant accoes-z '((0 . #2A((NIL T T) (T T NIL)))   (1 . #2A((NIL T T) (T T NIL)))   (2 . #2A((NIL T T) (T T NIL)))   (3 . #2A((NIL T T) (T T NIL)))   (4 . #2A((NIL T T) (T T NIL)))               
+						(5 . #2A((NIL T T) (T T NIL)))   (6 . #2A((NIL T T) (T T NIL)))   (7 . #2A((NIL T T) (T T NIL)))   (0 . #2A((T NIL) (T T) (NIL T))) (1 . #2A((T NIL) (T T) (NIL T)))           
+						(2 . #2A((T NIL) (T T) (NIL T))) (3 . #2A((T NIL) (T T) (NIL T))) (4 . #2A((T NIL) (T T) (NIL T))) (5 . #2A((T NIL) (T T) (NIL T))) (6 . #2A((T NIL) (T T) (NIL T)))     
+						(7 . #2A((T NIL) (T T) (NIL T))) (8 . #2A((T NIL) (T T) (NIL T)))))
+
+(defconstant accoes-o '((0 . #2A((T T) (T T))) (1 . #2A((T T) (T T))) (2 . #2A((T T) (T T))) (3 . #2A((T T) (T T))) (4 . #2A((T T) (T T))) (5 . #2A((T T) (T T))) (6 . #2A((T T) (T T)))         
+						(7 . #2A((T T) (T T))) (8 . #2A((T T) (T T)))))
+
+;;; accoes: estado --> lista-de-accoes
+;;; Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima peca a ser colocada.
+;;; Esta funcao e menos generica usando as constantes acima definidas pelo que e mais eficiente, com melhorias de tempo (e espaco) consideravies o suficiente 
+;;; para tomarmos a decisao de a escolher na vez da funcao 'accoes-generico'.
+(defun accoes (estado)
+	(when (eq (estado-terminal estado) t) ;Caso o estado seja terminal retornar imediatamente NIL.
+		(return-from accoes NIL))
+	
+	(let ((peca (first (estado-pecas-por-colocar estado))))
+        (cond ((eq peca 't) accoes-t)
+              ((eq peca 'l) accoes-l)
+              ((eq peca 'j) accoes-j)
+              ((eq peca 'i) accoes-i)
+              ((eq peca 's) accoes-s)
+              ((eq peca 'z) accoes-z)
+              ((eq peca 'o) accoes-o))))
+
+;;; altura-inversa-peca: array x inteiro --> inteiro
+;;; Funcao auxiliar de resultado que recebe um array que representa uma peca e um inteiro que corresponde a uma coluna
+;;; e devolve a 'altura inversa' da peca recebida na coluna recebida, isto e a altura da peca da peca a contar de baixo.
 (defun altura-inversa-peca (peca col)
     (do ((i 0 (incf i)))
-        ((or (= i (array-dimension peca 1)) (eq (aref peca i col) T)) i)
-    ))
+        ((or (= i (array-dimension peca 1)) (eq (aref peca i col) T)) 
+			i)))
 
-;Funcao que recebe um estado e uma accao e devolve um novo estado que resulta de aplicar a accao recebida no estado original
+;;; resultado: estado x accao --> estado
+;;; Funcao que recebe um estado e uma accao e devolve um novo estado que resulta de aplicar a accao recebida no estado recebido.
+;;; O estado original fica inalterado.
 (defun resultado (estado accao)
     (let ((e (copia-estado estado)))
         (setf (estado-pecas-colocadas e) (cons (first (estado-pecas-por-colocar e)) (estado-pecas-colocadas e))) ;atualiza pecas colocadas
         (setf (estado-pecas-por-colocar e) (rest (estado-pecas-por-colocar e))) ;atualiza pecas por colocar
         (let ((altura-temp 0) (primeira-linha 0))
 
-            ;Calculate primeira-linha
+            ;Calcula primeira-linha
             (dotimes (col (array-dimension (accao-peca accao) 1))
+				;altura-temp = altura-tabuleiro(coluna=coluna-da-accao + i) - altura da peca a contar de baixo)
                 (setf altura-temp (- (tabuleiro-altura-coluna (estado-tabuleiro e) (+ col (accao-coluna accao))) (altura-inversa-peca (accao-peca accao) col)))
-                (cond ((> altura-temp primeira-linha)
+                (cond ((> altura-temp primeira-linha) ;primeira-linha = max(altura-temp)
                     (setf primeira-linha altura-temp))))
 
-            ;(print primeira-linha)
-
-            ;Preenche tabuleiro
+            ;Preenche tabuleiro com a peca
             (dotimes (lin (array-dimension (accao-peca accao) 0))
                 (dotimes (col (array-dimension (accao-peca accao) 1))
                     (cond ((eq T (aref (accao-peca accao) lin col))
@@ -364,118 +431,65 @@
             (cond ((tabuleiro-topo-preenchido-p (estado-tabuleiro e))
                 e)
             (t
-                (let ((linhas-apagadas 0)
-                      (limite (+ (array-dimension (accao-peca accao) 0) primeira-linha)))
+                (let ((linhas-apagadas 0))
+					(let* ((limite-inferior primeira-linha)
+                           (limite-superior (+ (array-dimension (accao-peca accao) 0) primeira-linha))
+					       (lin limite-superior))
+						
+						(loop 
+							(when (eq (tabuleiro-linha-completa-p (estado-tabuleiro e) lin) T)
+								(tabuleiro-remove-linha! (estado-tabuleiro e) lin)
+								(setf linhas-apagadas (incf linhas-apagadas)))
+							(when (= lin limite-inferior) (return))
+							(decf lin)))
 
-                    (do ((lin limite (decf lin)))
-                        ((= lin -1) t)
-                        (cond ((tabuleiro-linha-completa-p (estado-tabuleiro e) lin)
-                            (tabuleiro-remove-linha! (estado-tabuleiro e) lin)
-                            (setf linhas-apagadas (incf linhas-apagadas)))))
                     (cond ((= linhas-apagadas 0)
                         t)
                     ((= linhas-apagadas 1) (setf (estado-pontos e) (+ (estado-pontos e) 100)))
                     ((= linhas-apagadas 2) (setf (estado-pontos e) (+ (estado-pontos e) 300)))
                     ((= linhas-apagadas 3) (setf (estado-pontos e) (+ (estado-pontos e) 500)))
                     ((= linhas-apagadas 4) (setf (estado-pontos e) (+ (estado-pontos e) 800)))
-                    (t (write-line "*******************PreMIO HACkeR(impossivel remover mais que 5 linhas)****************"))) ))))
-
-
+                    (t (write-line "*******************PreMIO HACkeR(impossivel remover mais que 5 linhas)****************")))))))
         e))
 
-;Funcao que recebe um estado e retorna um valor de qualidade que corresponde ao valor negativo dos pontos ganhos ate ao momento
-(defun qualidade (estado)
-    (* (estado-pontos estado) -1))
 
-;Funcao que dado um estado devolve o custo de oportunidade de todas as accoes realizadas ate ao momento, assumindo que e sempre possivel fazer o maximo de pontos por cada peca colocada
-(defun custo-oportunidade (estado)
-    (let ((maxPontos 0))
-        (dolist (n (estado-pecas-colocadas estado))
-            (cond ((eq n 'i) (setf maxPontos (+ maxPontos 800)))
-                ((eq n 'j) (setf maxPontos (+ maxPontos 500)))
-                ((eq n 'l) (setf maxPontos (+ maxPontos 500)))
-                ((eq n 's) (setf maxPontos (+ maxPontos 300)))
-                ((eq n 'z) (setf maxPontos (+ maxPontos 300)))
-                ((eq n 't) (setf maxPontos (+ maxPontos 300)))
-                ((eq n 'o) (setf maxPontos (+ maxPontos 300)))))
-        (- maxPontos (estado-pontos estado))))
 
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;
-;@Test: Preencher tabuleiro todo e testar a ver se retorna nil
+;;; procura-pp: problema --> lista-de-accoes
+;;; Esta funcao recebe um problema e usa a procura em profundidade primeiro em arvore (DFS) e 
+;;; devolve uma lista de accoes correspondente ao caminho que resolve o problema recebido.
 (defun procura-pp (p)
     (recursive-pp p))
 
+;;; recursive-pp: problema --> lista-de-accoes
+;;; Igual a procura-pp. Usa uma procura de forma recursiva.
 (defun recursive-pp (p)
     (cdr (recursive-pp-aux p (problema-estado-inicial p) NIL)))
 
+;;; recursive-pp-aux: problema x estado x accao --> lista-de-accoes
+;;; Funcao auxiliar a 'recursive-pp' que recebe um problema, um estado e uma accao. Esta funcao vai devolver NIL se o estado 
+;;; que recebe nao for solucao ou caso contrario a lista de accoes que levaram a gerar o tal estado.
 (defun recursive-pp-aux (p e oldA)
-    (cond ((eq (funcall (problema-solucao p) e) T)
+    (cond ((eq (funcall (problema-solucao p) e) T) ;caso estado recebido seja solucao do problema
         (list oldA))
     (T
         (let ((result NIL))
-            (dolist (a (reverse (funcall (problema-accoes p) e))) ;We had to reverse the list because the tests demanded it i guess
+            (dolist (a (reverse (funcall (problema-accoes p) e))) ;Tivemos de reverter a lista para passar no Mooshak
                 (setf result (recursive-pp-aux p (funcall (problema-resultado p) e a) a))
                 (when (not (eq result NIL))
                     (return-from recursive-pp-aux (cons oldA result)))))
         NIL)))
 
-;(defun iterative-pp (p)
-;    (let ((stack NIL)
-;		  (currState NIL)
-;		  (actionLst))
-;
-;		(stack (list (problema-estado-inicial p)))
-;        (loop
-;		    (when (null stack) (return-from iterative-pp NIL));if stack is empty there is no solution and so we failed
-;            
-;			;pop
-;			(setf currState (first stack))
-;			(setf stack (rest stack))
-;           
-;			(cond ((eq (funcall (problema-solucao p) currState) T) ;If we found a solution
-;                (return-from best-first-search actionLst))
-;            (T  
-;                (dolist (a (funcall (problema-accoes p) currState))
-;                    (setf stack (append (list (funcall (problema-resultado p) currState a)) stack))))))))
-
-;(defstruct problema
-;    estado-inicial // e o estado inical
-;    solucao        // funcao que diz se o estado que recebe e uma solucao
-;    accoes         // recebe um estado e devolve uma lista de accoes
-;    resultado      // aplica uma accao num estado e devolve o novo estado
-;    custo-caminho) // devolve um valor que quanto mais baixo melhor (corresponde a qualidade do estado)
-
-;Retorna a diferenca entre o max e o avg nivel das pecas caso o max seja maior que 4. Caso contrario devolve 0.
-(defun average-height-h (e)
-    (let ((currColH NIL) 
-	      (maxH 0) 
-		  (average 0))
-        (dotimes (i colunas)
-            (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
-            (when (> currColH maxH) (setf maxH currColH))
-			(setf average (+ average currColH)))
-		(setf average (round average colunas))
-		;(format T "average: ~A" average)
-		;(write-line "")
-		;(format T "max: ~A" maxH)
-		;(write-line "")
-        ;(if (> maxH 4)
-		;	(- maxH average)
-		;	0)))
-		(- maxH average)))
-
-(defun holes-h (e)
-    (let ((holeAmount 0))
-        (dotimes (i colunas)
-			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
-		holeAmount))
-	
+;;; node: Estrutura que guarda um estado e a lista de accoes tomadas para alcancar o mesmo.
 (defstruct node
 	estado
 	lst-accoes)
 
+;;; best-first-search: problema x (funcao: estado --> inteiro) --> lista-de-accoes
+;;; Funcao generica que recebe um problema e uma funcao que atribui um valor a um dado estado e devolve uma lista de accoes
+;;; corresponde ao caminho que resolve o problema recebido. A funcao e usada para orientar o algoritmo no caminho certo.
 (defun best-first-search (p F)
     (let ((node NIL) 
           (frontier (make-priority-queue))
@@ -486,35 +500,44 @@
         (loop
             (incf nodesExpanded)
 
-            (if (p-queue-empty frontier) ;if queue has no nodes there is no solution and so we failed
-                (return-from best-first-search NIL)
-                (setf node (p-queue-pop frontier)))
+            (when (p-queue-empty frontier) ;caso a fila esteja vazia entao o problema nao tem solucao
+                (return-from best-first-search NIL))
+            
+			(setf node (p-queue-pop frontier))
 
-            (cond ((eq (funcall (problema-solucao p) (node-estado node)) T) ;If we found a solution
+            (cond ((eq (funcall (problema-solucao p) (node-estado node)) T) ;Caso tenhamos encontrado uma solucao
                 ;(format T ">>> Nodes expanded: ~A" nodesExpanded)
 				;(write-line "")
                 ;(format T ">>> Nodes generated: ~A" nodesGenerated)
 				;(write-line "")
-                (return-from best-first-search (cdr (node-lst-accoes node))))
+                (return-from best-first-search (cdr (node-lst-accoes node)))) ;cdr para remover o NIL inicialmente colocado
             (T  
                 (let ((newE NIL) (prev-accoes (node-lst-accoes node)))
                     (dolist (a (funcall (problema-accoes p) (node-estado node)))
 						(incf nodesGenerated)
                         (setf newE (funcall (problema-resultado p) (node-estado node) a))
-                        (p-queue-insert frontier (make-node :estado newE													
-															:lst-accoes (append prev-accoes (list a)))
+                        (p-queue-insert frontier (make-node :estado newE :lst-accoes (append prev-accoes (list a)))
 												 (funcall F newE)))))))))
-            
-    
 
+;;; procura-A*: problema x (funcao: estado --> inteiro) --> lista-de-accoes
+;;; Funcao que recebe um problema e uma funcao heuristica que atribui um valor heuristico a um dado estado e devolve uma lista de accoes
+;;; corresponde ao caminho que resolve o problema recebido. Para orientar a funcao usa a funcao de custo (g) e a funcao heuristica
+;;; recebida (h) somadas (f = g + h).
 (defun procura-A* (p h)
     (best-first-search p #'(lambda(e) 
                             (+ (funcall (problema-custo-caminho p) e) (funcall h e)))))
-   
+
+;;; procura-gananciosa: problema x (funcao: estado --> inteiro) --> lista-de-accoes
+;;; Funcao que recebe um problema e uma funcao heuristica que atribui um valor heuristico a um dado estado e devolve uma lista de accoes
+;;; corresponde ao caminho que resolve o problema recebido. Para orientar a funcao usa a funcao heuristica recebida (h) (f = h).
 (defun procura-gananciosa (p h)
 	(best-first-search p #'(lambda(e)  
 							(funcall h e))))
 
+;;; procura-best: array x lista-pecas --> lista-de-accoes
+;;; Funcao que recebe um array correspondente ao tabuleiro e uma lista de pecas por colocar. A funcao inicaliza um problema com 
+;;; estes argumentos e devolve a melhor solucao, na forma de lista de accoes, dentro de um tempo aceitavel. Para tal combina 
+;;; @TODO: acabar comentario
 (defun procura-best (tabArray lista-pecas)
 	(let* ((t1 (array->tabuleiro tabArray))
 		   (e1 (make-estado :pontos 0
@@ -526,9 +549,66 @@
 							  :accoes #'accoes
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
-		;(procura-A* p1 #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
-		; (procura-A* p1 #'average-height-h)))
-        (procura-A* p1 #'(lambda(e) (+ (average-height-h e) (qualidade e) (* 100 (holes-h e)))))))
+        (procura-A* p1 #'(lambda(e) (+ (leveled-state-h e) (qualidade e) (* 100 (holes-h e)))))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; FUNCOES DE CUSTO ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; custo-oportunidade: estado --> inteiro
+;;; Funcao que recebe um estado e devolve o custo de oportunidade de todas as accoes realizadas ate ao momento.
+;;; Isto e o maximo de pontos possiveis ate ao momento subtraindo os pontos ja obtidos no estado recebido.
+(defun custo-oportunidade (estado)
+    (let ((maxPontos 0))
+		(dolist (n (estado-pecas-colocadas estado))
+			(cond ((eq n 'i) (setf maxPontos (+ maxPontos 800)))
+                  ((eq n 'j) (setf maxPontos (+ maxPontos 500)))
+                  ((eq n 'l) (setf maxPontos (+ maxPontos 500)))
+                  ((eq n 's) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 'z) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 't) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 'o) (setf maxPontos (+ maxPontos 300)))))
+        (- maxPontos (estado-pontos estado))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;;;; HEURISTICAS ;;;;
+;;;;;;;;;;;;;;;;;;;;;
+;;; qualidade: estado --> inteiro
+;;; Funcao que recebe um estado e devolve um inetiro correspondente ao valor de qualidade do estado.
+;;; O valor de qualidade e o valor negativo dos pontos ganhos ate no respectivo estado.
+(defun qualidade (estado)
+    (* (estado-pontos estado) -1))
+	
+;;; leveled-state-h: estado --> inteiro
+;;; Funcao heuristica que recebe um estado e devolve a diferenca entre o nivel maximo e o nivel medio das pecas.
+(defun leveled-state-h (e)
+    (let ((currColH NIL) 
+	      (maxH 0) 
+		  (average 0))
+        (dotimes (i colunas)
+            (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
+            (when (> currColH maxH) (setf maxH currColH))
+			(setf average (+ average currColH)))
+		(setf average (round average colunas))
+		(- maxH average)))
+
+;;; holes-h: estado --> inteiro
+;;; Funcao heuristica que recebe um estado o numero de buracos que esse estado tem.
+;;; Um "buraco" e um espaco em branco na coluna quando ainda existem posicoes acima ocupadas.
+(defun holes-h (e)
+    (let ((holeAmount 0))
+        (dotimes (i colunas)
+			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
+		holeAmount))
+	
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
@@ -563,9 +643,9 @@
 
 ;;;;;;;TESTED VALUES;;;;;;;;
 ;(print (time (testA* '(o o o o o) #'qualidade))) ;(15s, 842nodes)
-;(print (time (testA* '(o o o o o) #'average-height-h))) ;(0.8s, 278nodes)
-;(print (time (#'procura-A* '(i i i i) #'average-height-h))) ;(13880s, 2561nodes)
-;(print (time (test #'procura-gananciosa '(o o o o o) #'(lambda(e) (+ (average-height-h e) (qualidade e)))))) ;(0.002s, 6nodes expanded, 32 nodes generated)
+;(print (time (testA* '(o o o o o) #'leveled-state-h))) ;(0.8s, 278nodes)
+;(print (time (#'procura-A* '(i i i i) #'leveled-state-h))) ;(13880s, 2561nodes)
+;(print (time (test #'procura-gananciosa '(o o o o o) #'(lambda(e) (+ (leveled-state-h e) (qualidade e)))))) ;(0.002s, 6nodes expanded, 32 nodes generated)
 
 
 
