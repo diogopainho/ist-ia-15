@@ -43,78 +43,137 @@
 ;;;; MIN BINARY HEAP (PRIORITY QUEUE) ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defstruct node
+;;; heap-node: Uma estrutura existente em cada posicao do array (array esse que representa a binary-heap).
+;;;		'element' (qualquer tipo): O elemento que o utilizador quer guardar.
+;;;		'key' (inteiro): O valor de prioridade associado ao 'element'.
+;;;		'order-stamp'(inteiro): Um valor que e diferente em qualquer 'heap-node' para permitir a comparacao em elementos com a mesma prioridade.
+;;;								Os elementos colocados mais TARDE tem um valor MAIOR.
+(defstruct heap-node
 	element
-	key)
+	key
+	order-stamp)
 
-(defun make-binary-heap (&optional (default-increment 512))
-	(make-array default-increment :fill-pointer 1 :adjustable t))
+;;; make-binary-heap: inteiro (opcional) --> binary-heap
+;;; Este construtor recebe um inteiro optional que representa o valor inicial do tamanho do array e devolve um array com
+;;; tamanho ajustavel, com fill-pointer a 1 e com a posicao 0 com valor 0 (A[0] = 0).
+;;; Este array e a representacao de uma binary-heap na qual o 'heap-node' raiz se encontra na posicao 1. 
+;;; A posicao 0 e usada para manter um contador que guarda quantos elementos ja foram colocados desde sempre, sendo usado
+;;; para atribuir valores sempre diferentes de order-stamp a novos elementos inseridos.
+;;; @TODO: Comment how the heap works. Refer to the book as a reference.
+(defun make-binary-heap (&optional (initial-size 512))
+	(let ((A (make-array initial-size :fill-pointer 1 :adjustable t)))
+	    (setf (aref A 0) 0)
+	    A))
 
+;;; heap-parent: inteiro --> inteiro
+;;; Funcao que recebe um inteiro correspondente a uma posicao do array (que representa a binary-heap) e
+;;; devolve a posicao do array que corresponde a sua raiz (parent).
 (declaim (inline heap-parent))
 (defun heap-parent (i)
 	(floor i 2)) ; i/2
 
+;;; heap-left: inteiro --> inteiro
+;;; Funcao que recebe um inteiro correspondente a uma posicao do array (que representa a binary-heap) e
+;;; devolve a posicao do array que corresponde a sua folha esquerda.
 (declaim (inline heap-left))
 (defun heap-left (i)
 	(* 2 i)) ;2i
 
+;;; heap-right: inteiro --> inteiro
+;;; Funcao que recebe um inteiro correspondente a uma posicao do array (que representa a binary-heap) e
+;;; devolve a posicao do array que corresponde a sua folha direita.
 (declaim (inline heap-right))
 (defun heap-right (i)
 	(+ (* i 2) 1)) ;2i + 1
 
+;;; heap-last-pos: binary-heap --> inteiro
+;;; Funcao que recebe uma binary-heap e devolve a ultima posicao do array (que a representa) que esta valida.
+(declaim (inline heap-last-pos))
 (defun heap-last-pos (A)
 	(- (fill-pointer A) 1))
 
+;;; next-order-stamp: binary-heap --> inteiro
+;;; Funcao que recebe uma binary-heap e devolve o proximo identicador unico de order-stamp, incrementando 
+;;; o contador (guardado em A[0]).
+(declaim (inline next-order-stamp))
+(defun next-order-stamp (A)
+	(incf (aref A 0)))
+
+;;; min-heapify: binary-heap x inteiro --> {}
+;;; Funcao que recebe um binary-heap e um inteiro que representa a posicao no array (que representa a binary-heap) da
+;;; raiz da sub-arvore que precisa de ser equilibrada. Recursivamente equilibra a heap ate estar na forma correcta (A[Parent(i)] < A[i]).
+;;; Tem complexidade temporal O(log(N)).
 (defun min-heapify (A i)
 	(let ((l (heap-left i))
 		  (r (heap-right i))
-		  smallest)
-		
-		;Testa se a folha esquerda tem uma key mais pequena que o i (parent). Faz set do smallest de acordo.
-		(if (and (<= l (heap-last-pos A)) (< (node-key (aref A l)) (node-key (aref A i))))
-			(setf smallest l) ;true
-			(setf smallest i)) ;false
-		
-		;Testa se a folha direita tem uma key. Faz set do smallest de acordo e ficamos com o menor dos 3.
-		(when (and (<= r (heap-last-pos A)) (< (node-key (aref A r)) (node-key (aref A smallest))))
-			(setf smallest r))
+		  (smallest i))
 
-		;Caso exista um menor que o i (parent), entao trocamos e fazes heapify na arvore abaixo.
+		;Testa se a folha esquerda, l, tem uma key mais pequena que o i (parent). Se sim coloca l como smallest.
+		;Caso tenham o mesmo valor de key fica como smallest aquele com order-stamp maior.
+	    (cond ((<= l (heap-last-pos A)) 
+	        (if (< (heap-node-key (aref A l)) (heap-node-key (aref A i)))
+	            (setf smallest l)
+	            (when (and (= (heap-node-key (aref A l)) (heap-node-key (aref A i))) (> (heap-node-order-stamp (aref A l)) (heap-node-order-stamp (aref A i))))
+	                (setf smallest l)))))
+		
+		
+		;Testa se a folha direita, r, tem uma key mais pequena que o smallest. Se sim coloca r como smallest.
+		;Caso tenham o mesmo valor de key fica como smallest aquele com order-stamp maior.
+		(cond ((<= r (heap-last-pos A))
+		    (if (< (heap-node-key (aref A r)) (heap-node-key (aref A smallest)))
+			    (setf smallest r)
+		        (when (and (= (heap-node-key (aref A r)) (heap-node-key (aref A smallest))) (> (heap-node-order-stamp (aref A r)) (heap-node-order-stamp (aref A smallest))))
+			        (setf smallest r)))))
+    
+		;Caso exista um menor que o i (parent), entao trocamos e fazemos heapify na sub-arvore abaixo onde estava o smallest.
 		(when (/= smallest i)
 			(rotatef (aref A i) (aref A smallest)) ;swap
 			(min-heapify A smallest))))
 
+;;; heap-pop: binary-heap --> heap-node-element
+;;; Funcao que recebe um binary-heap e devolve o heap-node-element que tem associado o menor
+;;; valor de prioridade. Mantem a heap consistente com chamada a heapify.
+;;; Tem complexidade temporal O(log(N)).
 (defun heap-pop (A)
-	;Testa tentar remover de uma heap sem elementos (underflow)
+	;Testa se estamos a tentar remover de uma heap sem elementos (underflow)
 	(when (< (heap-last-pos A) 1) 
-		(write-line "head-pop: Underflow")
 		(return-from heap-pop NIL))
 
-	;Gurda 'min' o valor na primeira casa que deve ser retornado
-	;@See: possivelmente precisamos de fazer uma hard-copia do node
+	;Guarda 'min', o valor na primeira casa que deve ser retornado
 	(let ((min (aref A 1)))
-		(setf (aref A 1) (aref A (heap-last-pos A)))
+		(setf (aref A 1) (aref A (heap-last-pos A))) ;coloca na primeira casa o ultimo elemento
 		(decf (fill-pointer A))
 		(min-heapify A 1)
-		min))
+		(heap-node-element min)))
 
+;;; heap-decrease-key: binary-heap x inteiro x inteiro --> {}
+;;; Funcao que recebe uma binary-heap, um inteiro correspondente ao valor da posicao do elemento no array (que representa a heap)
+;;; ao qual queremos decrementar a key e um inteiro correspondente ao novo valor da key. Mantem a heap consistente.
+;;; Caso o valor recebido seja maior do que a key original uma mensagem de erro e imprimida e NIL e devolvido.
+;;; Tem complexidade temporal O(log(N)).
 (defun heap-decrease-key (A i key)
 	;Testa se a key recebida e maior que a key original de i na heap
-	(when (> key (node-key (aref A i)))
+	(when (> key (heap-node-key (aref A i)))
 		(write-line "heap-decrease-key: Key received not smaller than the original key.")
 		(return-from heap-decrease-key NIL))
 
 	;Atualiza o valor da key na posicao i
-	(setf (node-key (aref A i)) key)
+	(setf (heap-node-key (aref A i)) key)
 
 	;Atualiza a heap para ficar consistente
-	(loop while (and (> i 1) (> (node-key (aref A (heap-parent i))) (node-key (aref A i)))) do
+	(loop while (and (> i 1) (>= (heap-node-key (aref A (heap-parent i))) (heap-node-key (aref A i)))) do ;@Change: changed to >=
 		(rotatef (aref A (heap-parent i)) (aref A i)) ;swap
 		(setf i (heap-parent i))))
 
+;;; infinite-positive-number: Constante que representa o maior numero possivel de representar com 32 bits.
 (defconstant infinite-positive-number 2147483647)
+
+;;; min-heap-insert: binary-heap x heap-node-element x inteiro ---> {}
+;;; Funcao que recebe uma binary-heap um heap-node-element a inserir e um inteiro correspondente ao valor de prioridade (key)
+;;; associado a esse elemento. O elemento e inserido. A heap mantem-se consistente.
+;;; Tem complexidade temporal O(log(N)).
 (defun min-heap-insert (A element key)
-	(vector-push-extend (make-node :element element :key infinite-positive-number) A) ;Test with increment to check performance
+	(vector-push-extend (make-heap-node :element element :key infinite-positive-number :order-stamp (next-order-stamp A)) A) ;Test with increment to check performance
 	(heap-decrease-key A (heap-last-pos A) key))
 
 
@@ -628,18 +687,20 @@
 ;;; corresponde ao caminho que resolve o problema recebido. A funcao e usada para orientar o algoritmo no caminho certo.
 (defun best-first-search (p F)
     (let ((node NIL) 
-          (frontier (make-priority-queue))
+          (frontier (make-binary-heap))
           (nodesExpanded 0)
 		  (nodesGenerated 0))
-        (p-queue-insert frontier (make-search-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
-								 (funcall F (problema-estado-inicial p)))
+        (min-heap-insert frontier (make-search-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
+								  (funcall F (problema-estado-inicial p)))
         (loop
             (incf nodesExpanded)
+			;Faz pop da priority queue 
+			(setf node (heap-pop frontier))
 
-            (when (p-queue-empty frontier) ;caso a fila esteja vazia entao o problema nao tem solucao
+			;Caso a queue esteja vazia nao temos solucao
+			(when (null node)
                 (return-from best-first-search NIL))
             
-			(setf node (p-queue-pop frontier))
 
             (cond ((eq (funcall (problema-solucao p) (search-node-estado node)) T) ;Caso tenhamos encontrado uma solucao
                 ;(format T ">>> Nodes expanded: ~A" nodesExpanded)
@@ -652,8 +713,8 @@
                     (dolist (a (funcall (problema-accoes p) (search-node-estado node)))
 						(incf nodesGenerated)
                         (setf newE (funcall (problema-resultado p) (search-node-estado node) a))
-                        (p-queue-insert frontier (make-search-node :estado newE :lst-accoes (append prev-accoes (list a)))
-												 (funcall F newE)))))))))
+                        (min-heap-insert frontier (make-search-node :estado newE :lst-accoes (append prev-accoes (list a)))
+												  (funcall F newE)))))))))
 
 ;;; procura-A*: problema x (funcao: estado --> inteiro) --> lista-de-accoes
 ;;; Funcao que recebe um problema e uma funcao heuristica que atribui um valor heuristico a um dado estado e devolve uma lista de accoes
