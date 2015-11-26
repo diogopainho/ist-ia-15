@@ -39,6 +39,86 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; MIN BINARY HEAP (PRIORITY QUEUE) ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defstruct node
+	element
+	key)
+
+(defun make-binary-heap (&optional (default-increment 512))
+	(make-array default-increment :fill-pointer 1 :adjustable t))
+
+(declaim (inline heap-parent))
+(defun heap-parent (i)
+	(floor i 2)) ; i/2
+
+(declaim (inline heap-left))
+(defun heap-left (i)
+	(* 2 i)) ;2i
+
+(declaim (inline heap-right))
+(defun heap-right (i)
+	(+ (* i 2) 1)) ;2i + 1
+
+(defun heap-last-pos (A)
+	(- (fill-pointer A) 1))
+
+(defun min-heapify (A i)
+	(let ((l (heap-left i))
+		  (r (heap-right i))
+		  smallest)
+		
+		;Testa se a folha esquerda tem uma key mais pequena que o i (parent). Faz set do smallest de acordo.
+		(if (and (<= l (heap-last-pos A)) (< (node-key (aref A l)) (node-key (aref A i))))
+			(setf smallest l) ;true
+			(setf smallest i)) ;false
+		
+		;Testa se a folha direita tem uma key. Faz set do smallest de acordo e ficamos com o menor dos 3.
+		(when (and (<= r (heap-last-pos A)) (< (node-key (aref A r)) (node-key (aref A smallest))))
+			(setf smallest r))
+
+		;Caso exista um menor que o i (parent), entao trocamos e fazes heapify na arvore abaixo.
+		(when (/= smallest i)
+			(rotatef (aref A i) (aref A smallest)) ;swap
+			(min-heapify A smallest))))
+
+(defun heap-pop (A)
+	;Testa tentar remover de uma heap sem elementos (underflow)
+	(when (< (heap-last-pos A) 1) 
+		(write-line "head-pop: Underflow")
+		(return-from heap-extract-min NIL))
+
+	;Gurda 'min' o valor na primeira casa que deve ser retornado
+	;@See: possivelmente precisamos de fazer uma hard-copia do node
+	(let ((min (aref A 1)))
+		(setf (aref A 1) (aref A (heap-last-pos A)))
+		(decf (fill-pointer A))
+		(min-heapify A 1)
+		min))
+
+(defun heap-decrease-key (A i key)
+	;Testa se a key recebida e maior que a key original de i na heap
+	(when (> key (node-key (aref A i)))
+		(write-line "heap-decrease-key: Key received not smaller than the original key.")
+		(return-from heap-decrease-key NIL))
+
+	;Atualiza o valor da key na posicao i
+	(setf (node-key (aref A i)) key)
+
+	;Atualiza a heap para ficar consistente
+	(loop while (and (> i 1) (> (node-key (aref A (heap-parent i))) (node-key (aref A i)))) do
+		(rotatef (aref A (heap-parent i)) (aref A i)) ;swap
+		(setf i (heap-parent i))))
+
+(defconstant infinite-positive-number 2147483647)
+(defun min-heap-insert (A element key)
+	(vector-push-extend (make-node :element element :key infinite-positive-number) A) ;Test with increment to check performance
+	(heap-decrease-key A (heap-last-pos A) key))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PRIORITY QUEUE ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -454,9 +534,65 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; FUNCOES DE CUSTO ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; custo-oportunidade: estado --> inteiro
+;;; Funcao que recebe um estado e devolve o custo de oportunidade de todas as accoes realizadas ate ao momento.
+;;; Isto e o maximo de pontos possiveis ate ao momento subtraindo os pontos ja obtidos no estado recebido.
+(defun custo-oportunidade (estado)
+    (let ((maxPontos 0))
+		(dolist (n (estado-pecas-colocadas estado))
+			(cond ((eq n 'i) (setf maxPontos (+ maxPontos 800)))
+                  ((eq n 'j) (setf maxPontos (+ maxPontos 500)))
+                  ((eq n 'l) (setf maxPontos (+ maxPontos 500)))
+                  ((eq n 's) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 'z) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 't) (setf maxPontos (+ maxPontos 300)))
+                  ((eq n 'o) (setf maxPontos (+ maxPontos 300)))))
+        (- maxPontos (estado-pontos estado))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;;;; HEURISTICAS ;;;;
+;;;;;;;;;;;;;;;;;;;;;
+
+;;; qualidade: estado --> inteiro
+;;; Funcao que recebe um estado e devolve um inetiro correspondente ao valor de qualidade do estado.
+;;; O valor de qualidade e o valor negativo dos pontos ganhos ate no respectivo estado.
+(defun qualidade (estado)
+    (* (estado-pontos estado) -1))
+	
+;;; leveled-state-h: estado --> inteiro
+;;; Funcao heuristica que recebe um estado e devolve a diferenca entre o nivel maximo e o nivel medio das pecas.
+(defun leveled-state-h (e)
+    (let ((currColH NIL) 
+	      (maxH 0) 
+		  (average 0))
+        (dotimes (i colunas)
+            (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
+            (when (> currColH maxH) (setf maxH currColH))
+			(setf average (+ average currColH)))
+		(setf average (round average colunas))
+		(- maxH average)))
+
+;;; holes-h: estado --> inteiro
+;;; Funcao heuristica que recebe um estado o numero de buracos que esse estado tem.
+;;; Um "buraco" e um espaco em branco na coluna quando ainda existem posicoes acima ocupadas.
+(defun holes-h (e)
+    (let ((holeAmount 0))
+        (dotimes (i colunas)
+			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
+		holeAmount))
+
+
+
 ;;;;;;;;;;;;;;;;;
 ;;;; PROCURA ;;;;
 ;;;;;;;;;;;;;;;;;
+
 ;;; procura-pp: problema --> lista-de-accoes
 ;;; Esta funcao recebe um problema e usa a procura em profundidade primeiro em arvore (DFS) e 
 ;;; devolve uma lista de accoes correspondente ao caminho que resolve o problema recebido.
@@ -482,8 +618,8 @@
                     (return-from recursive-pp-aux (cons oldA result)))))
         NIL)))
 
-;;; node: Estrutura que guarda um estado e a lista de accoes tomadas para alcancar o mesmo.
-(defstruct node
+;;; search-node Estrutura que guarda um estado e a lista de accoes tomadas para alcancar o mesmo.
+(defstruct search-node
 	estado
 	lst-accoes)
 
@@ -495,7 +631,7 @@
           (frontier (make-priority-queue))
           (nodesExpanded 0)
 		  (nodesGenerated 0))
-        (p-queue-insert frontier (make-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
+        (p-queue-insert frontier (make-search-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
 								 (funcall F (problema-estado-inicial p)))
         (loop
             (incf nodesExpanded)
@@ -505,18 +641,18 @@
             
 			(setf node (p-queue-pop frontier))
 
-            (cond ((eq (funcall (problema-solucao p) (node-estado node)) T) ;Caso tenhamos encontrado uma solucao
+            (cond ((eq (funcall (problema-solucao p) (search-node-estado node)) T) ;Caso tenhamos encontrado uma solucao
                 ;(format T ">>> Nodes expanded: ~A" nodesExpanded)
 				;(write-line "")
                 ;(format T ">>> Nodes generated: ~A" nodesGenerated)
 				;(write-line "")
-                (return-from best-first-search (cdr (node-lst-accoes node)))) ;cdr para remover o NIL inicialmente colocado
+                (return-from best-first-search (cdr (search-node-lst-accoes node)))) ;cdr para remover o NIL inicialmente colocado
             (T  
-                (let ((newE NIL) (prev-accoes (node-lst-accoes node)))
-                    (dolist (a (funcall (problema-accoes p) (node-estado node)))
+                (let ((newE NIL) (prev-accoes (search-node-lst-accoes node)))
+                    (dolist (a (funcall (problema-accoes p) (search-node-estado node)))
 						(incf nodesGenerated)
-                        (setf newE (funcall (problema-resultado p) (node-estado node) a))
-                        (p-queue-insert frontier (make-node :estado newE :lst-accoes (append prev-accoes (list a)))
+                        (setf newE (funcall (problema-resultado p) (search-node-estado node) a))
+                        (p-queue-insert frontier (make-search-node :estado newE :lst-accoes (append prev-accoes (list a)))
 												 (funcall F newE)))))))))
 
 ;;; procura-A*: problema x (funcao: estado --> inteiro) --> lista-de-accoes
@@ -550,63 +686,6 @@
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
         (procura-A* p1 #'(lambda(e) (+ (leveled-state-h e) (qualidade e) (* 100 (holes-h e)))))))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; FUNCOES DE CUSTO ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; custo-oportunidade: estado --> inteiro
-;;; Funcao que recebe um estado e devolve o custo de oportunidade de todas as accoes realizadas ate ao momento.
-;;; Isto e o maximo de pontos possiveis ate ao momento subtraindo os pontos ja obtidos no estado recebido.
-(defun custo-oportunidade (estado)
-    (let ((maxPontos 0))
-		(dolist (n (estado-pecas-colocadas estado))
-			(cond ((eq n 'i) (setf maxPontos (+ maxPontos 800)))
-                  ((eq n 'j) (setf maxPontos (+ maxPontos 500)))
-                  ((eq n 'l) (setf maxPontos (+ maxPontos 500)))
-                  ((eq n 's) (setf maxPontos (+ maxPontos 300)))
-                  ((eq n 'z) (setf maxPontos (+ maxPontos 300)))
-                  ((eq n 't) (setf maxPontos (+ maxPontos 300)))
-                  ((eq n 'o) (setf maxPontos (+ maxPontos 300)))))
-        (- maxPontos (estado-pontos estado))))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;
-;;;; HEURISTICAS ;;;;
-;;;;;;;;;;;;;;;;;;;;;
-;;; qualidade: estado --> inteiro
-;;; Funcao que recebe um estado e devolve um inetiro correspondente ao valor de qualidade do estado.
-;;; O valor de qualidade e o valor negativo dos pontos ganhos ate no respectivo estado.
-(defun qualidade (estado)
-    (* (estado-pontos estado) -1))
-	
-;;; leveled-state-h: estado --> inteiro
-;;; Funcao heuristica que recebe um estado e devolve a diferenca entre o nivel maximo e o nivel medio das pecas.
-(defun leveled-state-h (e)
-    (let ((currColH NIL) 
-	      (maxH 0) 
-		  (average 0))
-        (dotimes (i colunas)
-            (setf currColH (tabuleiro-altura-coluna (estado-tabuleiro e) i))
-            (when (> currColH maxH) (setf maxH currColH))
-			(setf average (+ average currColH)))
-		(setf average (round average colunas))
-		(- maxH average)))
-
-;;; holes-h: estado --> inteiro
-;;; Funcao heuristica que recebe um estado o numero de buracos que esse estado tem.
-;;; Um "buraco" e um espaco em branco na coluna quando ainda existem posicoes acima ocupadas.
-(defun holes-h (e)
-    (let ((holeAmount 0))
-        (dotimes (i colunas)
-			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
-		holeAmount))
-	
-
-
-
 
 
 
