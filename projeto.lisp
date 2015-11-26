@@ -88,7 +88,7 @@
 	;Testa tentar remover de uma heap sem elementos (underflow)
 	(when (< (heap-last-pos A) 1) 
 		(write-line "head-pop: Underflow")
-		(return-from heap-extract-min NIL))
+		(return-from heap-pop NIL))
 
 	;Gurda 'min' o valor na primeira casa que deve ser retornado
 	;@See: possivelmente precisamos de fazer uma hard-copia do node
