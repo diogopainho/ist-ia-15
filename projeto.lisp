@@ -161,7 +161,7 @@
 	(setf (heap-node-key (aref A i)) key)
 
 	;Atualiza a heap para ficar consistente
-	(loop while (and (> i 1) (>= (heap-node-key (aref A (heap-parent i))) (heap-node-key (aref A i)))) do ;@Change: changed to >=
+	(loop while (and (> i 1) (>= (heap-node-key (aref A (heap-parent i))) (heap-node-key (aref A i)))) do
 		(rotatef (aref A (heap-parent i)) (aref A i)) ;swap
 		(setf i (heap-parent i))))
 
@@ -177,7 +177,7 @@
 	(heap-decrease-key A (heap-last-pos A) key))
 
 
-
+;@Cleanup: Delete
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO PRIORITY QUEUE ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -441,11 +441,8 @@
         (setf lst-accoes (append lst-accoes (list (cria-accao i array-peca)))))
     lst-accoes)
 
-;;@TODO: Change comments from generic 
 ;;; accoes: estado --> lista-de-accoes
 ;;; Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima peca a ser colocada.
-;;; Esta funcao e mais generica e consequentemente mais lenta do que a funcao usada 'accoes', mas e mais facil para gerar 
-;;; valores caso por exemplo uma peca nova tenha de ser adicionada.
 (defun accoes (estado) 
 	(when (eq (estado-terminal estado) t)
 		(return-from accoes NIL))
@@ -671,7 +668,9 @@
 	(best-first-search p #'(lambda(e)  
 							(funcall h e))))
 
-;;; @Comment
+;;; procura-uniforme: problema x (funcao: estado --> inteiro) --> lista-de-accoes
+;;; Funcao que recebe um problema e uma funcao heuristica (a qual e ignorada) devolve uma lista de accoes
+;;; corresponde ao caminho que resolve o problema recebido. Para orientar a funcao usa a funcao funcao de custo (g) (f = g).
 (defun procura-uniforme (p h)
 	(declare (ignore h))
     (best-first-search p #'(lambda(e) 
