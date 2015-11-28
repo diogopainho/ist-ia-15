@@ -59,7 +59,8 @@
 ;;; Este array e a representacao de uma binary-heap na qual o 'heap-node' raiz se encontra na posicao 1. 
 ;;; A posicao 0 e usada para manter um contador que guarda quantos elementos ja foram colocados desde sempre, sendo usado
 ;;; para atribuir valores sempre diferentes de order-stamp a novos elementos inseridos.
-;;; @TODO: Comment how the heap works. Refer to the book as a reference.
+;;; Para a criacao desta binary-heap foi tido como referencia o livro:
+;;; [Introduction to Algorithms, 3rd Edition] by Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein
 (defun make-binary-heap (&optional (initial-size 512))
 	(let ((A (make-array initial-size :fill-pointer 1 :adjustable t)))
 	    (setf (aref A 0) 0)
