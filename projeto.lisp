@@ -433,21 +433,22 @@
         t
         NIL))
 
-;;; accoes-aux-generico: lista-de-accoes x array --> lista-de-accoes
+;;; accoes-aux: lista-de-accoes x array --> lista-de-accoes
 ;;; Funcao auxiliar a 'accoes-generico' que recebe uma lista de accoes e um array que reprenta a configuracao de uma peca.
 ;;; Devolve a lista de accoes para a configuracao da peca recebida concatenada com a lista de accoes recebida nos argumentos.
-(defun accoes-aux-generico (lst-accoes array-peca)
+(defun accoes-aux (lst-accoes array-peca)
     (dotimes (i (- (+ colunas 1) (array-dimension array-peca 1)))
         (setf lst-accoes (append lst-accoes (list (cria-accao i array-peca)))))
     lst-accoes)
 
-;;; accoes-generico: estado --> lista-de-accoes
+;;@TODO: Change comments from generic 
+;;; accoes: estado --> lista-de-accoes
 ;;; Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima peca a ser colocada.
 ;;; Esta funcao e mais generica e consequentemente mais lenta do que a funcao usada 'accoes', mas e mais facil para gerar 
 ;;; valores caso por exemplo uma peca nova tenha de ser adicionada.
-(defun accoes-generico (estado) 
+(defun accoes (estado) 
 	(when (eq (estado-terminal estado) t)
-		(return-from accoes-generico NIL))
+		(return-from accoes NIL))
 
     (let ((peca (first (estado-pecas-por-colocar estado)))
           (lst-accoes NIL))
@@ -471,67 +472,6 @@
               ((eq peca 'z) (setf lst-accoes (accoes-aux lst-accoes peca-z0))
                             (setf lst-accoes (accoes-aux lst-accoes peca-z1)))
               ((eq peca 'o) (setf lst-accoes (accoes-aux lst-accoes peca-o0))))))
-
-;;; Constantes: Cada uma destas constantes representam uma lista que guarda todas as accoes possiveis com cada peca que lhes corresponde.
-;;; Embora fique mais 'feio' torna o resolucao dos problemas mais eficiente uma vez que nao tem de recalcular valores constantetmente,
-;;; e desta forma poupa-se tempo e espaco. Estes valores foram gerados com uma funcao generica mais lenta 'accoes-genericas'.
-(defconstant accoes-t '((0 . #2A((T T T) (NIL T NIL)))   (1 . #2A((T T T) (NIL T NIL)))   (2 . #2A((T T T) (NIL T NIL)))   (3 . #2A((T T T) (NIL T NIL)))   (4 . #2A((T T T) (NIL T NIL)))               
-						(5 . #2A((T T T) (NIL T NIL)))   (6 . #2A((T T T) (NIL T NIL)))   (7 . #2A((T T T) (NIL T NIL)))   (0 . #2A((T NIL) (T T) (T NIL))) (1 . #2A((T NIL) (T T) (T NIL)))           
-						(2 . #2A((T NIL) (T T) (T NIL))) (3 . #2A((T NIL) (T T) (T NIL))) (4 . #2A((T NIL) (T T) (T NIL))) (5 . #2A((T NIL) (T T) (T NIL))) (6 . #2A((T NIL) (T T) (T NIL)))     
-						(7 . #2A((T NIL) (T T) (T NIL))) (8 . #2A((T NIL) (T T) (T NIL))) (0 . #2A((NIL T NIL) (T T T)))   (1 . #2A((NIL T NIL) (T T T)))   (2 . #2A((NIL T NIL) (T T T)))           
-						(3 . #2A((NIL T NIL) (T T T)))   (4 . #2A((NIL T NIL) (T T T)))   (5 . #2A((NIL T NIL) (T T T)))   (6 . #2A((NIL T NIL) (T T T)))   (7 . #2A((NIL T NIL) (T T T)))               
-						(0 . #2A((NIL T) (T T) (NIL T))) (1 . #2A((NIL T) (T T) (NIL T))) (2 . #2A((NIL T) (T T) (NIL T))) (3 . #2A((NIL T) (T T) (NIL T))) (4 . #2A((NIL T) (T T) (NIL T)))     
-						(5 . #2A((NIL T) (T T) (NIL T))) (6 . #2A((NIL T) (T T) (NIL T))) (7 . #2A((NIL T) (T T) (NIL T))) (8 . #2A((NIL T) (T T) (NIL T)))))
-
-(defconstant accoes-l '((0 . #2A((T T) (T NIL) (T NIL))) (1 . #2A((T T) (T NIL) (T NIL))) (2 . #2A((T T) (T NIL) (T NIL))) (3 . #2A((T T) (T NIL) (T NIL))) (4 . #2A((T T) (T NIL) (T NIL)))     
-						(5 . #2A((T T) (T NIL) (T NIL))) (6 . #2A((T T) (T NIL) (T NIL))) (7 . #2A((T T) (T NIL) (T NIL))) (8 . #2A((T T) (T NIL) (T NIL))) (0 . #2A((T NIL NIL) (T T T)))       
-						(1 . #2A((T NIL NIL) (T T T)))   (2 . #2A((T NIL NIL) (T T T)))   (3 . #2A((T NIL NIL) (T T T)))   (4 . #2A((T NIL NIL) (T T T)))   (5 . #2A((T NIL NIL) (T T T)))               
-						(6 . #2A((T NIL NIL) (T T T)))   (7 . #2A((T NIL NIL) (T T T)))   (0 . #2A((NIL T) (NIL T) (T T))) (1 . #2A((NIL T) (NIL T) (T T))) (2 . #2A((NIL T) (NIL T) (T T)))         
-						(3 . #2A((NIL T) (NIL T) (T T))) (4 . #2A((NIL T) (NIL T) (T T))) (5 . #2A((NIL T) (NIL T) (T T))) (6 . #2A((NIL T) (NIL T) (T T))) (7 . #2A((NIL T) (NIL T) (T T)))     
-						(8 . #2A((NIL T) (NIL T) (T T))) (0 . #2A((T T T) (NIL NIL T)))   (1 . #2A((T T T) (NIL NIL T)))   (2 . #2A((T T T) (NIL NIL T)))   (3 . #2A((T T T) (NIL NIL T)))             
-						(4 . #2A((T T T) (NIL NIL T)))   (5 . #2A((T T T) (NIL NIL T)))   (6 . #2A((T T T) (NIL NIL T)))   (7 . #2A((T T T) (NIL NIL T)))))
-
-(defconstant accoes-j '((0 . #2A((T T) (NIL T) (NIL T))) (1 . #2A((T T) (NIL T) (NIL T))) (2 . #2A((T T) (NIL T) (NIL T))) (3 . #2A((T T) (NIL T) (NIL T))) (4 . #2A((T T) (NIL T) (NIL T)))     
-						(5 . #2A((T T) (NIL T) (NIL T))) (6 . #2A((T T) (NIL T) (NIL T))) (7 . #2A((T T) (NIL T) (NIL T))) (8 . #2A((T T) (NIL T) (NIL T))) (0 . #2A((T T T) (T NIL NIL)))       
-						(1 . #2A((T T T) (T NIL NIL)))   (2 . #2A((T T T) (T NIL NIL)))   (3 . #2A((T T T) (T NIL NIL)))   (4 . #2A((T T T) (T NIL NIL)))   (5 . #2A((T T T) (T NIL NIL)))               
-						(6 . #2A((T T T) (T NIL NIL)))   (7 . #2A((T T T) (T NIL NIL)))   (0 . #2A((T NIL) (T NIL) (T T))) (1 . #2A((T NIL) (T NIL) (T T))) (2 . #2A((T NIL) (T NIL) (T T)))         
-						(3 . #2A((T NIL) (T NIL) (T T))) (4 . #2A((T NIL) (T NIL) (T T))) (5 . #2A((T NIL) (T NIL) (T T))) (6 . #2A((T NIL) (T NIL) (T T))) (7 . #2A((T NIL) (T NIL) (T T)))     
-						(8 . #2A((T NIL) (T NIL) (T T))) (0 . #2A((NIL NIL T) (T T T)))   (1 . #2A((NIL NIL T) (T T T)))   (2 . #2A((NIL NIL T) (T T T)))   (3 . #2A((NIL NIL T) (T T T)))             
-						(4 . #2A((NIL NIL T) (T T T)))   (5 . #2A((NIL NIL T) (T T T)))   (6 . #2A((NIL NIL T) (T T T)))   (7 . #2A((NIL NIL T) (T T T)))))
-
-(defconstant accoes-i '((0 . #2A((T) (T) (T) (T))) (1 . #2A((T) (T) (T) (T))) (2 . #2A((T) (T) (T) (T))) (3 . #2A((T) (T) (T) (T))) (4 . #2A((T) (T) (T) (T))) (5 . #2A((T) (T) (T) (T)))        
-						(6 . #2A((T) (T) (T) (T))) (7 . #2A((T) (T) (T) (T))) (8 . #2A((T) (T) (T) (T))) (9 . #2A((T) (T) (T) (T))) (0 . #2A((T T T T)))       (1 . #2A((T T T T)))                    
-						(2 . #2A((T T T T)))       (3 . #2A((T T T T)))       (4 . #2A((T T T T)))       (5 . #2A((T T T T)))       (6 . #2A((T T T T)))))
-
-(defconstant accoes-s '((0 . #2A((T T NIL) (NIL T T)))   (1 . #2A((T T NIL) (NIL T T)))   (2 . #2A((T T NIL) (NIL T T)))   (3 . #2A((T T NIL) (NIL T T)))   (4 . #2A((T T NIL) (NIL T T)))               
-						(5 . #2A((T T NIL) (NIL T T)))   (6 . #2A((T T NIL) (NIL T T)))   (7 . #2A((T T NIL) (NIL T T)))   (0 . #2A((NIL T) (T T) (T NIL))) (1 . #2A((NIL T) (T T) (T NIL)))           
-						(2 . #2A((NIL T) (T T) (T NIL))) (3 . #2A((NIL T) (T T) (T NIL))) (4 . #2A((NIL T) (T T) (T NIL))) (5 . #2A((NIL T) (T T) (T NIL))) (6 . #2A((NIL T) (T T) (T NIL)))     
-						(7 . #2A((NIL T) (T T) (T NIL))) (8 . #2A((NIL T) (T T) (T NIL)))))
- 
-(defconstant accoes-z '((0 . #2A((NIL T T) (T T NIL)))   (1 . #2A((NIL T T) (T T NIL)))   (2 . #2A((NIL T T) (T T NIL)))   (3 . #2A((NIL T T) (T T NIL)))   (4 . #2A((NIL T T) (T T NIL)))               
-						(5 . #2A((NIL T T) (T T NIL)))   (6 . #2A((NIL T T) (T T NIL)))   (7 . #2A((NIL T T) (T T NIL)))   (0 . #2A((T NIL) (T T) (NIL T))) (1 . #2A((T NIL) (T T) (NIL T)))           
-						(2 . #2A((T NIL) (T T) (NIL T))) (3 . #2A((T NIL) (T T) (NIL T))) (4 . #2A((T NIL) (T T) (NIL T))) (5 . #2A((T NIL) (T T) (NIL T))) (6 . #2A((T NIL) (T T) (NIL T)))     
-						(7 . #2A((T NIL) (T T) (NIL T))) (8 . #2A((T NIL) (T T) (NIL T)))))
-
-(defconstant accoes-o '((0 . #2A((T T) (T T))) (1 . #2A((T T) (T T))) (2 . #2A((T T) (T T))) (3 . #2A((T T) (T T))) (4 . #2A((T T) (T T))) (5 . #2A((T T) (T T))) (6 . #2A((T T) (T T)))         
-						(7 . #2A((T T) (T T))) (8 . #2A((T T) (T T)))))
-
-;;; accoes: estado --> lista-de-accoes
-;;; Funcao que recebe um estado e devolve uma lista de accoes correspondendo a todas as accoes validas que podem ser feitas com a proxima peca a ser colocada.
-;;; Esta funcao e menos generica usando as constantes acima definidas pelo que e mais eficiente, com melhorias de tempo (e espaco) consideravies o suficiente 
-;;; para tomarmos a decisao de a escolher na vez da funcao 'accoes-generico'.
-(defun accoes (estado)
-	(when (eq (estado-terminal estado) t) ;Caso o estado seja terminal retornar imediatamente NIL.
-		(return-from accoes NIL))
-	
-	(let ((peca (first (estado-pecas-por-colocar estado))))
-        (cond ((eq peca 't) accoes-t)
-              ((eq peca 'l) accoes-l)
-              ((eq peca 'j) accoes-j)
-              ((eq peca 'i) accoes-i)
-              ((eq peca 's) accoes-s)
-              ((eq peca 'z) accoes-z)
-              ((eq peca 'o) accoes-o))))
 
 ;;; altura-inversa-peca: array x inteiro --> inteiro
 ;;; Funcao auxiliar de resultado que recebe um array que representa uma peca e um inteiro que corresponde a uma coluna
@@ -626,7 +566,7 @@
 	
 ;;; leveled-state-h: estado --> inteiro
 ;;; Funcao heuristica que recebe um estado e devolve a diferenca entre o nivel maximo e o nivel medio das pecas.
-(defun leveled-state-h (e)
+(defun h2-leveled-state (e)
     (let ((currColH NIL) 
 	      (maxH 0) 
 		  (average 0))
@@ -640,7 +580,7 @@
 ;;; holes-h: estado --> inteiro
 ;;; Funcao heuristica que recebe um estado o numero de buracos que esse estado tem.
 ;;; Um "buraco" e um espaco em branco na coluna quando ainda existem posicoes acima ocupadas.
-(defun holes-h (e)
+(defun h3-holes (e)
     (let ((holeAmount 0))
         (dotimes (i colunas)
 			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
@@ -703,9 +643,9 @@
             
 
             (cond ((eq (funcall (problema-solucao p) (search-node-estado node)) T) ;Caso tenhamos encontrado uma solucao
-                ;(format T ">>> Nodes expanded: ~A" nodesExpanded)
+                ;(format T "--> Nodes expanded: ~A" nodesExpanded)
 				;(write-line "")
-                ;(format T ">>> Nodes generated: ~A" nodesGenerated)
+                ;(format T "--> Nodes generated: ~A" nodesGenerated)
 				;(write-line "")
                 (return-from best-first-search (cdr (search-node-lst-accoes node)))) ;cdr para remover o NIL inicialmente colocado
             (T  
@@ -731,6 +671,12 @@
 	(best-first-search p #'(lambda(e)  
 							(funcall h e))))
 
+;;; @Comment
+(defun procura-uniforme (p h)
+	(declare (ignore h))
+    (best-first-search p #'(lambda(e) 
+                            (funcall (problema-custo-caminho p) e))))
+
 ;;; procura-best: array x lista-pecas --> lista-de-accoes
 ;;; Funcao que recebe um array correspondente ao tabuleiro e uma lista de pecas por colocar. A funcao inicaliza um problema com 
 ;;; estes argumentos e devolve a melhor solucao, na forma de lista de accoes, dentro de um tempo aceitavel. Para tal combina 
@@ -746,14 +692,23 @@
 							  :accoes #'accoes
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
-        (procura-A* p1 #'(lambda(e) (+ (leveled-state-h e) (qualidade e) (* 100 (holes-h e)))))))
+        (procura-A* p1 #'(lambda(e) (+ (h2-leveled-state e) (qualidade e) (* 100 (h3-holes e)))))))
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun test(funcao ppc heu)
+(defun drawLastTab (estado-inicial lista-accoes)
+	(let ((estado estado-inicial))
+		(do () ((or (estado-final-p estado) (null lista-accoes)))
+			(setf estado (resultado estado (first lista-accoes)))
+			(setf lista-accoes (rest lista-accoes)))
+		(desenha-estado estado)
+		(estado-pontos estado)))
+
+
+(defun test(funcao tab ppc heu)
 	(if (not (listp ppc)) (return-from test 'PPC_NOT_ALIST!!) NIL)
 	(if (not (functionp heu)) (return-from test 'HEU_NOT_AFUN!!) NIL)
 	(if (not (functionp funcao)) (return-from test 'HEU_NOT_AFUN!!) NIL)
@@ -771,22 +726,31 @@
 	(format T "->heuristica: ~A!" heu)
 	(write-line "")
 
-	(let* ((t1 (cria-tabuleiro))
-		  (e1 (make-estado :tabuleiro t1 :pecas-por-colocar ppc))
-		  (p1 (make-problema :estado-inicial e1
+	(let* ((e1 (make-estado :tabuleiro tab :pecas-por-colocar ppc))
+		   (p1 (make-problema :estado-inicial e1
 				        :solucao #'solucao
 				        :accoes #'accoes
 				        :resultado #'resultado
-				        :custo-caminho #'custo-oportunidade)))
+				        :custo-caminho #'custo-oportunidade))
+			(result NIL))
 
-	(funcall funcao p1 heu)))
+		(format T "->Estado-inicial: ")
+		(write-line "")
+		(desenha-estado (problema-estado-inicial p1))
+		(write-line "")
+		(time (setf result (funcall funcao p1 heu)))
+		(format T "->Result:")
+		(write-line "")
+		(drawLastTab (problema-estado-inicial p1) result)))
+
 
 ;;;;;;;TESTED VALUES;;;;;;;;
 ;(print (time (testA* '(o o o o o) #'qualidade))) ;(15s, 842nodes)
 ;(print (time (testA* '(o o o o o) #'leveled-state-h))) ;(0.8s, 278nodes)
-;(print (time (#'procura-A* '(i i i i) #'leveled-state-h))) ;(13880s, 2561nodes)
+;(print (time (test #'procura-A* '(i i i i) #'leveled-state-h))) ;(13880s, 2561nodes)
 ;(print (time (test #'procura-gananciosa '(o o o o o) #'(lambda(e) (+ (leveled-state-h e) (qualidade e)))))) ;(0.002s, 6nodes expanded, 32 nodes generated)
 
+;(print (time (procura-best (tabuleiro->array (cria-tabuleiro)) '(i i i i)))) 
 
-
+; @Cleanup: Uncomment me!
 (load "utils.fas")
