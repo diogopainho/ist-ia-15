@@ -42,6 +42,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; MIN BINARY HEAP (PRIORITY QUEUE) ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Para a criacao desta binary-heap foi tido como referencia o livro:
+;;; [Introduction to Algorithms, 3rd Edition] by Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein
 
 ;;; heap-node: Uma estrutura existente em cada posicao do array (array esse que representa a binary-heap).
 ;;;		'element' (qualquer tipo): O elemento que o utilizador quer guardar.
@@ -59,8 +61,6 @@
 ;;; Este array e a representacao de uma binary-heap na qual o 'heap-node' raiz se encontra na posicao 1. 
 ;;; A posicao 0 e usada para manter um contador que guarda quantos elementos ja foram colocados desde sempre, sendo usado
 ;;; para atribuir valores sempre diferentes de order-stamp a novos elementos inseridos.
-;;; Para a criacao desta binary-heap foi tido como referencia o livro:
-;;; [Introduction to Algorithms, 3rd Edition] by Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein
 (defun make-binary-heap (&optional (initial-size 512))
 	(let ((A (make-array initial-size :fill-pointer 1 :adjustable t)))
 	    (setf (aref A 0) 0)
@@ -177,56 +177,8 @@
 	(vector-push-extend (make-heap-node :element element :key infinite-positive-number :order-stamp (next-order-stamp A)) A) ;Test with increment to check performance
 	(heap-decrease-key A (heap-last-pos A) key))
 
-
-;@Cleanup: Delete
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; TIPO PRIORITY QUEUE ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;; priority-queue: Estrutura que define uma priority-queue que guarda o tamanho da fila e elementos.
-;;; Estes elementos sao um tuplo em que o primeiro e um elemento dado pelo utilizador quando insere na fila e o segundo 
-;;; um inteiro que representa o valor desse elemento. E com este valor que a fila e organizada do menor valor para o maior.
-(defstruct priority-queue
-    (size 0)
-    (pair NIL))
-
-;;; p-queue-empty: priority-queue --> boolean
-;;; Esta funcao retorna T caso a fila esteja vazia e NIL caso contrario
-(defun p-queue-empty (pq)
-    (if (zerop (priority-queue-size pq))
-        T
-        NIL))
-
-;;; p-queue-pop: priority-queue --> element
-;;; Esta funcao retira o primeiro tuplo da fila e retorna o elemento associado a esse tuplo.
-;;; @Robustness: should test if queue is empty before poping?
-(defun p-queue-pop (pq)
-    (decf (priority-queue-size pq))
-    (first (pop (priority-queue-pair pq))))
-
-;;; p-queue-insert: priority-queue x elemento x inteiro --> {}
-;;; Esta funcao insere um tuplo com o elemento e o valor dado nos argumentos pelo utilizador.
-;;; Este tuplo e inserido na fila de acordo com o seu valor, de modo a que a fila fique organizado do mais pequeno para o maior.
-;;; Em caso de empate de valores o ultimo a ser inserido fica mais a frenta na fila.
-(defun p-queue-insert (pq newEle newVal)
-    (cond ((p-queue-empty pq) ;Caso seja o nosso primeiro insert (isto e a fila esta vazia)
-        (incf (priority-queue-size pq))
-        (setf (priority-queue-pair pq) (list (list newEle newVal))))
-    (T
-        (let ((i 0))
-            (loop
-                (when (>= i (priority-queue-size pq)) (return)) ;Caso tenhamos chegado ao fim da fila break (caso o valor dado seja maior que todos os valores na fila)
-                (when (>= (second (nth i (priority-queue-pair pq))) newVal) (return)) ;Caso o valor que esta a ser iterado na fila seja >= que o valor dado - break.
-                (incf i))
-            
-			(incf (priority-queue-size pq))
-            (cond ((eq i 0) ;colocar tuplo no inicio da lista
-                (setf (priority-queue-pair pq) (cons (list newEle newVal) (priority-queue-pair pq))))
-            (T
-                (push (list newEle newVal) (cdr (nthcdr (1- i) (priority-queue-pair pq))))))))))
-
-
     
+
 ;;;;;;;;;;;;;;;;;;;;
 ;;;; TIPO ACCAO ;;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -576,13 +528,21 @@
 		(- maxH average)))
 
 ;;; holes-h: estado --> inteiro
-;;; Funcao heuristica que recebe um estado o numero de buracos que esse estado tem.
+;;; Funcao heuristica que recebe um estado e devolve o numero de buracos que esse estado tem.
 ;;; Um "buraco" e um espaco em branco na coluna quando ainda existem posicoes acima ocupadas.
 (defun h3-holes (e)
     (let ((holeAmount 0))
         (dotimes (i colunas)
 			(setf holeAmount (+ holeAmount (tabuleiro-buracos-coluna (estado-tabuleiro e) i))))
 		holeAmount))
+
+;;; best-heuristic: estado --> inteiro
+;;; Funcao heuristica que recebe um estado e devolve um inteiro que representa o valor que melhor indica a 'qualidade' do estado recebido.
+;;; Para tal devolve a diferenca entre o nivel maximo e medio das pecas * 300 caso seja maior que 4 mais o numero de buracos * 900 .
+;;; h = [h2 > 4 ? (h2*300) : 0] + h3*900
+(defun best-heuristic (e)
+	(let ((h2 (h2-leveled-state e)))
+		(+ (if (> h2 4) (* h2 300) 0) (* (h3-HOLES e) 900))))
 
 
 
@@ -624,14 +584,16 @@
 ;;; Funcao generica que recebe um problema e uma funcao que atribui um valor a um dado estado e devolve uma lista de accoes
 ;;; corresponde ao caminho que resolve o problema recebido. A funcao e usada para orientar o algoritmo no caminho certo.
 (defun best-first-search (p F)
-    (let ((node NIL) 
-          (frontier (make-binary-heap))
-          (nodesExpanded 0)
-		  (nodesGenerated 0))
+    (let (;(nodesExpanded 0) 
+		  ;(nodesGenerated 0)
+		  (node NIL) 
+          (frontier (make-binary-heap)))
+
+		;Comeca por inserir o estado-inicial na frontier
         (min-heap-insert frontier (make-search-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
 								  (funcall F (problema-estado-inicial p)))
         (loop
-            (incf nodesExpanded)
+            ;(incf nodesExpanded)
 			;Faz pop da priority queue 
 			(setf node (heap-pop frontier))
 
@@ -649,7 +611,7 @@
             (T  
                 (let ((newE NIL) (prev-accoes (search-node-lst-accoes node)))
                     (dolist (a (funcall (problema-accoes p) (search-node-estado node)))
-						(incf nodesGenerated)
+						;(incf nodesGenerated)
                         (setf newE (funcall (problema-resultado p) (search-node-estado node) a))
                         (min-heap-insert frontier (make-search-node :estado newE :lst-accoes (append prev-accoes (list a)))
 												  (funcall F newE)))))))))
@@ -679,8 +641,8 @@
 
 ;;; procura-best: array x lista-pecas --> lista-de-accoes
 ;;; Funcao que recebe um array correspondente ao tabuleiro e uma lista de pecas por colocar. A funcao inicaliza um problema com 
-;;; estes argumentos e devolve a melhor solucao, na forma de lista de accoes, dentro de um tempo aceitavel. Para tal combina 
-;;; @TODO: acabar comentario
+;;; estes argumentos e devolve a melhor solucao, na forma de lista de accoes, dentro de um tempo aceitavel. Para tal usa a 
+;;; heuristica 'best-heuristic' para guiar a procura.
 (defun procura-best (tabArray lista-pecas)
 	(let* ((t1 (array->tabuleiro tabArray))
 		   (e1 (make-estado :pontos 0
@@ -692,7 +654,7 @@
 							  :accoes #'accoes
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
-        (procura-A* p1 #'(lambda(e) (+ (h2-leveled-state e) (qualidade e) (* 100 (h3-holes e)))))))
+        (procura-A* p1 #'best-heuristic)))
 
 
 
@@ -705,10 +667,11 @@
 			(setf estado (resultado estado (first lista-accoes)))
 			(setf lista-accoes (rest lista-accoes)))
 		(desenha-estado estado)
+		(write-line "")
 		(estado-pontos estado)))
 
 
-(defun test(funcao tab ppc heu)
+(defun test(funcao tab ppc heu expectedResult)
 	(if (not (listp ppc)) (return-from test 'PPC_NOT_ALIST!!) NIL)
 	(if (not (functionp heu)) (return-from test 'HEU_NOT_AFUN!!) NIL)
 	(if (not (functionp funcao)) (return-from test 'HEU_NOT_AFUN!!) NIL)
@@ -739,18 +702,13 @@
 		(desenha-estado (problema-estado-inicial p1))
 		(write-line "")
 		(time (setf result (funcall funcao p1 heu)))
+		(format T "-->accoes: ~A" result)
+		(write-line "")
 		(format T "->Result:")
 		(write-line "")
-		(drawLastTab (problema-estado-inicial p1) result)))
+		(if (= (drawLastTab (problema-estado-inicial p1) result) expectedResult)
+			(write-line "Result was the expected result!")
+			(write-line "Result was not the expected result!"))))
 
-
-;;;;;;;TESTED VALUES;;;;;;;;
-;(print (time (testA* '(o o o o o) #'qualidade))) ;(15s, 842nodes)
-;(print (time (testA* '(o o o o o) #'leveled-state-h))) ;(0.8s, 278nodes)
-;(print (time (test #'procura-A* '(i i i i) #'leveled-state-h))) ;(13880s, 2561nodes)
-;(print (time (test #'procura-gananciosa '(o o o o o) #'(lambda(e) (+ (leveled-state-h e) (qualidade e)))))) ;(0.002s, 6nodes expanded, 32 nodes generated)
-
-;(print (time (procura-best (tabuleiro->array (cria-tabuleiro)) '(i i i i)))) 
-
-; @Cleanup: Uncomment me!
 (load "utils.fas")
+ 
