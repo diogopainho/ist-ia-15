@@ -584,16 +584,13 @@
 ;;; Funcao generica que recebe um problema e uma funcao que atribui um valor a um dado estado e devolve uma lista de accoes
 ;;; corresponde ao caminho que resolve o problema recebido. A funcao e usada para orientar o algoritmo no caminho certo.
 (defun best-first-search (p F)
-    (let (;(nodesExpanded 0) 
-		  ;(nodesGenerated 0)
-		  (node NIL) 
+    (let ((node NIL) 
           (frontier (make-binary-heap)))
 
 		;Comeca por inserir o estado-inicial na frontier
         (min-heap-insert frontier (make-search-node :estado (problema-estado-inicial p) :lst-accoes (list NIL))
 								  (funcall F (problema-estado-inicial p)))
         (loop
-            ;(incf nodesExpanded)
 			;Faz pop da priority queue 
 			(setf node (heap-pop frontier))
 
@@ -603,15 +600,10 @@
             
 
             (cond ((eq (funcall (problema-solucao p) (search-node-estado node)) T) ;Caso tenhamos encontrado uma solucao
-                ;(format T "--> Nodes expanded: ~A" nodesExpanded)
-				;(write-line "")
-                ;(format T "--> Nodes generated: ~A" nodesGenerated)
-				;(write-line "")
                 (return-from best-first-search (cdr (search-node-lst-accoes node)))) ;cdr para remover o NIL inicialmente colocado
             (T  
                 (let ((newE NIL) (prev-accoes (search-node-lst-accoes node)))
                     (dolist (a (funcall (problema-accoes p) (search-node-estado node)))
-						;(incf nodesGenerated)
                         (setf newE (funcall (problema-resultado p) (search-node-estado node) a))
                         (min-heap-insert frontier (make-search-node :estado newE :lst-accoes (append prev-accoes (list a)))
 												  (funcall F newE)))))))))
@@ -655,60 +647,6 @@
 							  :resultado #'resultado
 							  :custo-caminho #'custo-oportunidade)))
         (procura-A* p1 #'best-heuristic)))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;TESTES;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun drawLastTab (estado-inicial lista-accoes)
-	(let ((estado estado-inicial))
-		(do () ((or (estado-final-p estado) (null lista-accoes)))
-			(setf estado (resultado estado (first lista-accoes)))
-			(setf lista-accoes (rest lista-accoes)))
-		(desenha-estado estado)
-		(write-line "")
-		(estado-pontos estado)))
-
-
-(defun test(funcao tab ppc heu expectedResult)
-	(if (not (listp ppc)) (return-from test 'PPC_NOT_ALIST!!) NIL)
-	(if (not (functionp heu)) (return-from test 'HEU_NOT_AFUN!!) NIL)
-	(if (not (functionp funcao)) (return-from test 'HEU_NOT_AFUN!!) NIL)
-	 
-	(write-line "")
-	(write-line "")
-	(write-line "")
-	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
-	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
-	(write-line ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")
-	(format T "->Testing ~A:" funcao)
-	(write-line "")
-	(format T "->ppc: (~{~A~^, ~})" ppc)
-	(write-line "")
-	(format T "->heuristica: ~A!" heu)
-	(write-line "")
-
-	(let* ((e1 (make-estado :tabuleiro tab :pecas-por-colocar ppc))
-		   (p1 (make-problema :estado-inicial e1
-				        :solucao #'solucao
-				        :accoes #'accoes
-				        :resultado #'resultado
-				        :custo-caminho #'custo-oportunidade))
-			(result NIL))
-
-		(format T "->Estado-inicial: ")
-		(write-line "")
-		(desenha-estado (problema-estado-inicial p1))
-		(write-line "")
-		(time (setf result (funcall funcao p1 heu)))
-		(format T "-->accoes: ~A" result)
-		(write-line "")
-		(format T "->Result:")
-		(write-line "")
-		(if (= (drawLastTab (problema-estado-inicial p1) result) expectedResult)
-			(write-line "Result was the expected result!")
-			(write-line "Result was not the expected result!"))))
 
 (load "utils.fas")
  
